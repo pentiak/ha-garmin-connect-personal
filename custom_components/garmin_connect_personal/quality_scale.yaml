@@ -12,9 +12,7 @@ rules:
   common-modules: done
   config-flow: done
   config-flow-test-coverage: done
-  dependency-transparency:
-    status: todo
-    comment: Done once aio-garmin-personal 0.1.0 is released from its GitHub Actions workflow.
+  dependency-transparency: done
   docs-actions:
     status: exempt
     comment: The integration registers no actions.

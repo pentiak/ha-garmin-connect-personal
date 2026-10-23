@@ -5,12 +5,13 @@
 Update this section at the end of every working session.
 
 - **Last updated:** 2026-10-23
-- **Current phase:** 2 (publish the library)
-- **State:** Phases 0 and 1 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
+- **Current phase:** 3 (integration in a real Home Assistant, first HACS release)
+- **State:** Phases 0 to 2 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
   repositories were recreated on 2026-10-23 with a single fresh commit each; ADR-0021
-  records what they may contain. Both are public. The integration's Tests workflow fails until the library is on PyPI.
-- **Next step:** check the repository settings below on both repositories, then phase 2 from
-  step 2.
+  records what they may contain. Both are public, and their settings match Repository
+  settings below. aio-garmin-personal 0.1.0 is on PyPI, published by `release.yml` through
+  trusted publishing.
+- **Next step:** phase 3 step 3, run the integration in a real Home Assistant.
 
 ## Phases
 
@@ -46,17 +47,17 @@ notes, which are not published.
 **Done when:** every open question has an answer or is explicitly deferred, and the fixtures
 match the real response shapes.
 
-### Phase 2: Publish the library
+### Phase 2: Publish the library (done 2026-10-23)
 
 1. Done: `github.com/pentiak/aio-garmin-personal` is public, with issues on, as
    `dependency-transparency` requires.
-2. On PyPI, add a pending trusted publisher: project `aio-garmin-personal`, owner `pentiak`,
+2. Done: on PyPI, a trusted publisher: project `aio-garmin-personal`, owner `pentiak`,
    repository `aio-garmin-personal`, workflow `release.yml`, environment `pypi`. In the GitHub
-   repository, create the `pypi` environment.
-3. Move the CHANGELOG `Unreleased` section to `0.1.0`, commit, tag `v0.1.0`, push the tag.
+   repository, the `pypi` environment, limited to `v*.*.*` tags.
+3. Done: move the CHANGELOG `Unreleased` section to `0.1.0`, commit, tag `v0.1.0`, push the tag.
    The `release` workflow checks that the tag matches `pyproject.toml`, builds, publishes and
    creates the GitHub release.
-4. Add `tests` to the integration's required checks (see Repository settings).
+4. Done: add `tests` to the integration's required checks (see Repository settings).
 
 #### Repository settings
 
@@ -73,11 +74,9 @@ Both repositories, applied with `gh` after they were recreated:
   free plan.
   - Library checks: `test (3.13)`, `test (3.14)`, `dependency-audit`, `gitleaks`, `trivy`,
     `zizmor`, `codeql`.
-  - Integration checks: `hassfest`, `hacs`, `gitleaks`, `trivy`, `zizmor`, `codeql`. Add
-    `tests` once the library is on PyPI; until then it fails and would block every pull
-    request. Find the ruleset ID with `gh api repos/pentiak/ha-garmin-connect-personal/rulesets`,
-    fetch it, add `{"context": "tests", "integration_id": 15368}` to
-    `required_status_checks`, and send it back with `gh api -X PUT` on the same path.
+  - Integration checks: `tests`, `hassfest`, `hacs`, `gitleaks`, `trivy`, `zizmor`, `codeql`.
+    `tests` installs the pinned library version from PyPI, so a library bump must be released
+    before the integration PR that raises the pin can pass.
 
 **Done when:** `pip install aio-garmin-personal==0.1.0` works and the PyPI release links to
 the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
@@ -85,7 +84,7 @@ the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
 ### Phase 3: Integration on GitHub, in a real Home Assistant, first HACS release
 
 1. Done: `github.com/pentiak/ha-garmin-connect-personal` is public. The `tests` workflow
-   installs the library from PyPI, so it passes only after phase 2.
+   installs the library from PyPI.
 2. Done: `validate` (hassfest, HACS action) is green.
 3. Run it in a real Home Assistant: add the repository as a HACS custom repository, or copy
    `custom_components/garmin_connect_personal` into a test instance's config. Run it for at
