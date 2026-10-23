@@ -1,0 +1,8 @@
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # Published on a branch only; see ADR-0019.
+        "home-assistant/actions/*": ref-pin
+        "hacs/action": ref-pin
+        "*": hash-pin

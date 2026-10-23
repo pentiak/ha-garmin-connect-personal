@@ -1,0 +1,13 @@
+{
+  "domain": "garmin_connect_personal",
+  "name": "Garmin Connect Personal",
+  "codeowners": ["@pentiak"],
+  "config_flow": true,
+  "documentation": "https://github.com/pentiak/ha-garmin-connect-personal",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/pentiak/ha-garmin-connect-personal/issues",
+  "loggers": ["aio_garmin_personal"],
+  "requirements": ["aio-garmin-personal==0.1.0"],
+  "version": "0.1.0"
+}

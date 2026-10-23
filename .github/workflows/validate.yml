@@ -1,0 +1,33 @@
+name: Validate
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    - cron: "0 4 * * 1"
+
+permissions: {}
+
+jobs:
+  hassfest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Home Assistant publishes hassfest only on its master branch, which follows core's
+      # current rules. Pinning a commit would validate against stale rules (ADR-0019).
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # HACS publishes its validation action on main only (ADR-0019).
+      - uses: hacs/action@main
+        with:
+          category: integration

@@ -1,0 +1,68 @@
+{
+  "displayName": "00000000-0000-4000-8000-000000000000",
+  "preferredLocale": "en",
+  "measurementSystem": "metric",
+  "firstDayOfWeek": {
+    "dayId": 3,
+    "dayName": "monday",
+    "sortOrder": 3,
+    "isPossibleFirstDay": true
+  },
+  "numberFormat": "decimal_period",
+  "timeFormat": {
+    "formatId": 33,
+    "formatKey": "time_twenty_four_hr",
+    "minFraction": 0,
+    "maxFraction": 0,
+    "groupingUsed": false,
+    "displayFormat": "H:mm"
+  },
+  "dateFormat": {
+    "formatId": 25,
+    "formatKey": "yyyymmdd",
+    "minFraction": 0,
+    "maxFraction": 0,
+    "groupingUsed": false,
+    "displayFormat": "EEE, yyyy MMM d"
+  },
+  "powerFormat": {
+    "formatId": 30,
+    "formatKey": "watt",
+    "minFraction": 0,
+    "maxFraction": 0,
+    "groupingUsed": true,
+    "displayFormat": null
+  },
+  "heartRateFormat": {
+    "formatId": 21,
+    "formatKey": "bpm",
+    "minFraction": 0,
+    "maxFraction": 0,
+    "groupingUsed": false,
+    "displayFormat": null
+  },
+  "timeZone": "Europe/Berlin",
+  "hydrationMeasurementUnit": "milliliter",
+  "hydrationContainers": [
+    {
+      "name": null,
+      "volume": 200,
+      "unit": "milliliter"
+    },
+    {
+      "name": null,
+      "volume": 330,
+      "unit": "milliliter"
+    },
+    {
+      "name": null,
+      "volume": 500,
+      "unit": "milliliter"
+    }
+  ],
+  "golfDistanceUnit": "metric",
+  "golfElevationUnit": null,
+  "golfSpeedUnit": null,
+  "availableTrainingDays": null,
+  "preferredLongTrainingDays": null
+}

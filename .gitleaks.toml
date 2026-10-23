@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+# The detect-secrets baseline holds SHA-1 hashes of the fake credentials in the tests.
+[allowlist]
+description = "detect-secrets baseline"
+paths = ['''^\.secrets\.baseline$''']

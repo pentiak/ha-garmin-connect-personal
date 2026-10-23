@@ -1,0 +1,92 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "description": "Create a Personal API key in Garmin Connect under Settings → Personal API Key, then paste it here. Garmin shows the key only once.",
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "The Personal API key of your Garmin Connect account."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Authentication expired for {name}",
+        "description": "Garmin rejected the stored key. It has probably expired or been deleted. Create a new Personal API key in Garmin Connect and paste it here.",
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "The Personal API key of your Garmin Connect account."
+        }
+      },
+      "reconfigure": {
+        "description": "Replace the Personal API key, for example before the current one expires. The new key must belong to the same Garmin account.",
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "The Personal API key of your Garmin Connect account."
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Garmin rejected the key. Check that you copied all of it and that it has not expired.",
+      "cannot_connect": "Failed to connect",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Account is already configured",
+      "reauth_successful": "Re-authentication was successful",
+      "reconfigure_successful": "Reconfiguration was successful",
+      "wrong_account": "The new key belongs to a different Garmin account."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_calories": {
+        "name": "Total calories"
+      },
+      "active_calories": {
+        "name": "Active calories"
+      },
+      "resting_calories": {
+        "name": "Resting calories"
+      },
+      "steps": {
+        "name": "Steps",
+        "unit_of_measurement": "steps"
+      },
+      "floors_ascended": {
+        "name": "Floors climbed",
+        "unit_of_measurement": "floors"
+      },
+      "intensity_minutes": {
+        "name": "Intensity minutes"
+      },
+      "resting_heart_rate": {
+        "name": "Resting heart rate"
+      },
+      "average_stress": {
+        "name": "Average stress"
+      },
+      "body_battery": {
+        "name": "Body Battery"
+      },
+      "last_sync": {
+        "name": "Last sync"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "Garmin rejected the Personal API key."
+    },
+    "rate_limited": {
+      "message": "Garmin is rate limiting requests."
+    },
+    "update_failed": {
+      "message": "Could not read data from Garmin: {error}"
+    }
+  }
+}

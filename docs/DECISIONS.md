@@ -1,0 +1,306 @@
+# Decisions
+
+One entry per decision. Add new ones at the end with the next number. When a decision is
+reversed, mark it `Superseded by ADR-NNNN` instead of deleting it.
+
+## ADR-0001: Write our own async library instead of using Garmin's client
+
+**Status:** accepted, 2026-10-22
+
+Garmin published `garmin-connect-personal-api-python` 1.0.0 on PyPI on 2026-10-21 (Apache-2.0,
+sdist and wheel, tag `v1.0.0`). It cannot be the integration's dependency:
+
+- GitHub issues are disabled on `garmin/connect-personal-api-python`. The core checklist requires
+  an enabled issue tracker.
+- The repository has no CI workflows, so the PyPI release was not built in public CI. That fails
+  the Bronze rule `dependency-transparency`.
+- It is synchronous (`requests`), which fails the Platinum rules `async-dependency` and
+  `inject-websession`.
+- Its token cache is a file under `~/.config/garmin`, which does not fit Home Assistant.
+
+So `aio-garmin-personal` is written from scratch with `aiohttp`. Garmin's client is the reference
+for the token endpoint and header formats, which the OpenAPI document does not describe.
+
+## ADR-0002: Two repositories in one workspace directory
+
+**Status:** accepted, 2026-10-22
+
+Both repositories are checked out side by side in one workspace directory, which is not a git
+repository. It holds:
+
+- `aio-garmin-personal/`: the library repository, published to PyPI from its own tags.
+- `ha-garmin-connect-personal/`: the integration repository, released to HACS from its own tags.
+- `reference/`: material that must not be published (ADR-0014).
+- `CLAUDE.md`: orientation for Claude Code sessions started in the workspace, including how
+  the maintainer handles the Personal API key locally.
+
+One repository cannot serve both: PyPI versions must match tags in the library's public
+repository (`dependency-transparency`), and HACS reads versions from the integration
+repository's releases. The project documents (design, plan, decisions) live in the integration
+repository's `docs/`, because the integration is the product and they are versioned there. The
+workspace `CLAUDE.md` is not versioned, so it only points to them.
+
+## ADR-0003: Names
+
+**Status:** accepted, 2026-10-22
+
+| Thing | Name |
+|---|---|
+| PyPI distribution | `aio-garmin-personal` |
+| Python package | `aio_garmin_personal` |
+| Library repository | `github.com/pentiak/aio-garmin-personal` |
+| Integration domain | `garmin_connect_personal` |
+| Integration repository | `github.com/pentiak/ha-garmin-connect-personal` |
+| Display name | Garmin Connect Personal |
+
+`garmin_connect` is taken: it is the domain of the cyberjunky HACS integration and of the
+former core integration. Two integrations with the same domain cannot be installed together.
+The PyPI name was free on 2026-10-22.
+
+## ADR-0004: Develop as a custom integration laid out the way core expects
+
+**Status:** accepted, 2026-10-22
+
+The integration is built and released through HACS first, but written to core's rules from the
+start, so the core submission is a copy rather than a rewrite:
+
+- `quality_scale.yaml` is kept current; it is the per-rule checklist.
+- `strings.json` uses core's `[%key:…%]` references; `translations/en.json` is generated
+  (DESIGN.md, Translations).
+- Code style follows core: `ruff` with core's isort settings, `typing.override`, `probatio`
+  schemas, `ConfigEntry.runtime_data`, `strict` mypy on the integration code.
+- Things only a custom integration needs (`version` in `manifest.json`, `hacs.json`, the
+  translations generator, a `brand/` folder) are removed at submission.
+
+## ADR-0005: Poll the single-day summary every 10 minutes
+
+**Status:** accepted, 2026-10-22
+
+All current sensors come from `GET /usersummary-service/usersummary/daily`, one request per
+poll, one coordinator. Garmin publishes no rate limits. Ten minutes keeps the daily request
+count at 144 and is short compared with how often watches sync. The interval is a constant,
+not an option, following core practice; check core's current policy before adding an option.
+
+## ADR-0006: The day boundary comes from the Garmin profile time zone
+
+**Status:** accepted, 2026-10-22
+
+Garmin assigns wellness data to calendar days in the time zone of the user profile
+(`timeZone` in the profile settings). The coordinator reads that zone once at setup and
+requests "today" in it. `gmt` is mapped to UTC. An unknown zone name falls back to the Home
+Assistant zone with a warning.
+
+The zone is not refreshed until the entry reloads. If Garmin changes it while travelling, the
+first polls after midnight may request the wrong day. Revisit once real behaviour is known
+(PLAN.md, open questions).
+
+## ADR-0007: The account is identified by `userProfileId`
+
+**Status:** accepted, 2026-10-22; revised 2026-10-23
+
+The config entry's `unique_id`, the device identifier and the entity unique IDs use the
+Garmin `userProfileId`. It appears only in daily summaries. The profile settings have a display
+name, which users can change and which is a generated UUID for accounts that never set one.
+
+The config flow fetches today's summary (today in the Garmin time zone). The real API returns a
+summary with `userProfileId` for any day, even one without data, so the original fallback to
+yesterday and the `no_data` error were removed on 2026-10-23.
+
+The token's `garmin_guid` claim is another stable identifier. It is not used: switching would
+change every unique ID, and reading it would make the integration depend on the token's
+contents, which Garmin does not document.
+
+## ADR-0008: Token handling
+
+**Status:** accepted, 2026-10-22
+
+- The JWT is held in memory only, per client instance. It is not stored in the config entry, so
+  each Home Assistant restart costs one token exchange.
+- It is renewed when it is within one hour of its `exp`, the margin Garmin's client uses.
+- A 401 on a data endpoint invalidates the token and retries once; a second 401 is an
+  authentication failure.
+- A 403 on a data endpoint is a `GarminPersonalResponseError`, not an authentication failure.
+  A valid token that is refused a resource does not mean the key is bad, and starting a reauth
+  flow for it would ask the user for a key they already have.
+
+## ADR-0009: Key expiry is handled by reauthentication only
+
+**Status:** accepted, 2026-10-23
+
+Keys expire after the period the user chose, between 30 days and one year. When one expires,
+Garmin rejects it, the integration raises `ConfigEntryAuthFailed`, and Home Assistant asks the
+user to re-authenticate with a new key. Nothing warns earlier inside Home Assistant:
+
+- No endpoint, header or token claim reports the key's expiry date (checked against the real
+  API on 2026-10-23). A token shorter than 24 hours shows the key expires within a day, which is
+  too late to be useful.
+- Garmin emails the user about a week before a key expires, and the reconfigure flow lets the
+  user replace a key that still works.
+
+The alternative, an optional expiry date typed in during setup with a repair issue seven days
+ahead, was rejected: it adds a field to the setup form and depends on a date the user can
+mistype. `repair-issues` is exempt in `quality_scale.yaml` for this reason.
+
+## ADR-0010: Sensor modelling
+
+**Status:** accepted, 2026-10-22
+
+- Daily totals (calories, steps, distance, floors, intensity minutes) use state class `total`
+  with `last_reset` = midnight of the summary's `calendarDate` in the Garmin time zone.
+  `total_increasing` was the first choice, as in core's `google_health`, but the recorder only
+  detects a reset of a `total_increasing` sensor when the value drops below 90% of the previous
+  one (`reset_detected` in `homeassistant/components/sensor/recorder.py`). Calorie totals do not
+  start from zero: if Garmin reports the full day's BMR from the first sync (open question 1),
+  `resting_calories` stays near the same value across midnight, and `total_calories` after a rest
+  day can start above 90% of the day before. Neither reset would be recorded, and the day's sum
+  would be wrong. With `last_reset` the cycle boundary is explicit, and a total that decreases
+  within a day (open question 8) reduces the sum instead of starting a new cycle.
+- Calories use device class `energy` with `kcal`.
+- Body Battery has no unit. It is Garmin's 0–100 score, not a percentage of anything, and the
+  `battery` device class would mark it as a device battery.
+- Intensity minutes are `moderate + 2 × vigorous`, Garmin's own weighting.
+- Resting calories, floors and average stress are disabled by default; most users do not need
+  them.
+- A missing summary makes every sensor `unknown`, not `0`. "No data yet" and "zero steps" are
+  different facts.
+
+## ADR-0011: Library tests use a local aiohttp server
+
+**Status:** accepted, 2026-10-22
+
+`aioresponses` 0.7.9 fails with aiohttp 3.14 (`ClientResponse.__init__() missing 1 required
+keyword-only argument: 'stream_writer'`). The library tests run against a real
+`aiohttp.test_utils.TestServer` with queued replies instead (`tests/conftest.py`, `FakeGarmin`).
+This also exercises real headers, query strings and timeouts.
+
+## ADR-0012: Local Python and CI versions
+
+**Status:** accepted, 2026-10-22
+
+The only Python on the development machine is Homebrew's 3.15. Home Assistant 2026.10.2 requires
+`>=3.14.2` and ships on 3.14. `pytest-homeassistant-custom-component` 0.13.373 (which pins
+`homeassistant==2026.10.2`) installs and passes on 3.15, so local work uses a project venv on
+3.15 (`python3 -m venv .venv`). CI runs the library on 3.13 and 3.14 and the integration on
+3.14, the version users run. A failure that appears only locally may be a 3.15 difference;
+check CI before chasing it.
+
+## ADR-0013: Minimum Home Assistant version 2026.10.0
+
+**Status:** accepted, 2026-10-22
+
+Core config flows use `probatio` schemas, and HA 2026.10's `FlowHandler` types expect them;
+voluptuous schemas fail strict mypy. The integration targets the release it is tested against,
+set in `hacs.json`. Raise it when the test harness pin moves; do not support older releases.
+
+## ADR-0014: Garmin's OpenAPI document stays out of the repositories
+
+**Status:** accepted, 2026-10-22
+
+Garmin does not publish the spec as a file; it is embedded in the Swagger page's JavaScript
+bundle. The extracted copy is in the workspace at
+`reference/garmin-personal-api-openapi-1.0.0.json`, which is not in either repository, because
+it is Garmin's documentation and the repositories will be public. The library repository
+carries `scripts/extract_openapi.py` to regenerate it.
+
+## ADR-0015: Apache-2.0 for both repositories
+
+**Status:** accepted, 2026-10-22
+
+Home Assistant core is Apache-2.0, and core requires dependencies under OSI-approved licences
+compatible with it.
+
+## ADR-0016: Per-repository git identity
+
+**Status:** accepted, 2026-10-22
+
+Commits in both repositories use `Oskar Majchrzak <pentiak@gmail.com>`, set with
+`git config --local` so that the global identity on the development machine does not apply.
+Check with `git config --local user.email` before the first commit in a fresh clone.
+
+## ADR-0017: Entry title from the display name, unless it is a UUID
+
+**Status:** accepted, 2026-10-23
+
+Garmin fills `displayName` with a generated UUID for accounts that never set a display name.
+Using it as the title would put the UUID into the device name and every entity ID. The title is
+the display name when it is set and does not parse as a UUID, and "Garmin Connect" otherwise.
+Users can rename the entry and the device in Home Assistant.
+
+## ADR-0018: Lint with Home Assistant core's ruff configuration
+
+**Status:** accepted, 2026-10-23
+
+`pyproject.toml` and `tests/ruff.toml` carry core's ruff configuration, copied from the core
+`dev` branch, extending ADR-0004. Only `extend-exclude` and the per-file ignores for core's own
+paths were dropped, and `custom_components` was added as first party. Consequences:
+
+- Line length is the formatter default, 88.
+- `from __future__ import annotations` is banned. Python 3.14, the minimum for the
+  integration, evaluates annotations lazily, so it is not needed.
+- Every function, tests included, needs a docstring.
+
+The library is not part of core and targets Python 3.13, which evaluates annotations eagerly,
+so it keeps `from __future__ import annotations`. It uses core's rule list plus the complete
+bandit (`S`), datetime (`DTZ`), builtins (`A`), naming (`N`), comprehension (`C4`) and
+commented-out code (`ERA`) families, with test-only ignores for `assert` and private access.
+
+## ADR-0019: Actions are pinned to commit SHAs, with a seven-day cooldown
+
+**Status:** accepted, 2026-10-23
+
+Every action in both repositories is referenced by a full commit SHA, with its version in a
+comment. In March 2026 an attacker replaced 76 of the 77 version tags of
+`aquasecurity/trivy-action` with commits that stole CI secrets; workflows pinned to a SHA ran
+the code they had reviewed.
+
+New releases are adopted after seven days: when pinning, the newest release at least a week
+old is chosen, and Dependabot (`.github/dependabot.yml`, weekly) uses `cooldown: 7` days. A
+compromised release is usually found and withdrawn within that time.
+
+Two references stay on a branch: `home-assistant/actions/hassfest@master` and
+`hacs/action@main`. Neither project publishes releases of them; hassfest on `master` follows
+core's current rules, which is the point of running it, and a pinned commit would validate
+against outdated rules. Both come from the projects whose code the integration runs inside.
+`.github/zizmor.yml` allows exactly these two.
+
+## ADR-0020: Security scans
+
+**Status:** accepted, 2026-10-23
+
+| Check | Where | Covers |
+|---|---|---|
+| gitleaks | `security.yml`, full history | secrets committed to git |
+| detect-secrets | pre-commit hook | secrets before they are committed; `.secrets.baseline` lists known fakes |
+| Trivy `fs` | `security.yml` | vulnerable pinned dependencies, secrets, misconfiguration |
+| pip-audit | library `ci.yml` | vulnerabilities in the library's installed runtime dependencies |
+| zizmor | `security.yml`, pre-commit | insecure GitHub Actions workflows |
+| CodeQL | `security.yml`, public repositories only | Python and workflow code analysis |
+| Dependabot | `.github/dependabot.yml` | outdated actions and Python packages |
+
+Trivy finds Python dependencies only in pinned files such as `requirements_test.txt`; the
+library declares `aiohttp>=3.11` with no lock file, so pip-audit audits what is actually
+installed instead. The integration has no pip-audit job: its only runtime dependency is the
+library, audited in its own repository, and the rest of its environment is Home Assistant's.
+
+Code scanning, GitHub secret scanning, push protection and branch rulesets are free only for
+public repositories. The CodeQL job is skipped while a repository is private and starts on its
+own once it is public; the rest are switched on in phase 2 (PLAN.md).
+
+Local hooks run tools from the project venv only, so nothing is installed outside it.
+
+## ADR-0021: What the public repositories may contain
+
+**Status:** accepted, 2026-10-23
+
+Both repositories are public, and so is their history. They contain the code, the project
+documents and test data, and nothing about the maintainer beyond the name and address in the
+commits and the package metadata:
+
+- **No real account data.** Test fixtures keep the field names, types and null patterns of
+  real responses, but every identifier, metric and timestamp is made up. A real response can
+  identify a person (IDs, display name) and is health data even without identifiers (heart
+  rate, SpO2, sleep times). Before adding a fixture from a real response, replace all of it.
+- **No personal setup.** How the maintainer stores the API key, local paths and machine details
+  belong in the workspace `CLAUDE.md`, which is not versioned.
+- **Findings, not measurements.** Observations about the API are written as general
+  statements ("resting calories grow through the day"), not as the maintainer's numbers.

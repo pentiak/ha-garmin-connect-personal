@@ -1,0 +1,36 @@
+{
+  "entity": {
+    "sensor": {
+      "total_calories": {
+        "default": "mdi:fire"
+      },
+      "active_calories": {
+        "default": "mdi:fire"
+      },
+      "resting_calories": {
+        "default": "mdi:fire-circle"
+      },
+      "steps": {
+        "default": "mdi:shoe-print"
+      },
+      "floors_ascended": {
+        "default": "mdi:stairs-up"
+      },
+      "intensity_minutes": {
+        "default": "mdi:run-fast"
+      },
+      "resting_heart_rate": {
+        "default": "mdi:heart-pulse"
+      },
+      "average_stress": {
+        "default": "mdi:head-alert-outline"
+      },
+      "body_battery": {
+        "default": "mdi:battery-heart-variant"
+      },
+      "last_sync": {
+        "default": "mdi:sync"
+      }
+    }
+  }
+}
