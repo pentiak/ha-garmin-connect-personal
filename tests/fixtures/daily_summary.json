@@ -103,6 +103,20 @@
       "activityType": null,
       "activityId": null,
       "eventUpdateTimeGmt": "2026-10-23T05:21:40"
+    },
+    {
+      "eventType": "ACTIVITY",
+      "eventStartTimeGmt": "2026-10-23T15:02:44",
+      "timezoneOffset": 7200000,
+      "durationInMilliseconds": 2700000,
+      "bodyBatteryImpact": -9,
+      "feedbackType": "EXERCISE_TRAINING_EFFECT_3",
+      "shortFeedback": "IMPROVING_AEROBIC",
+      "deviceId": 1234567890,
+      "activityName": "Riverside Easy Run",
+      "activityType": "running",
+      "activityId": 98765432101,
+      "eventUpdateTimeGmt": "2026-10-23T15:50:12"
     }
   ],
   "avgWakingRespirationValue": 15.0,

@@ -117,7 +117,12 @@ so Home Assistant retries setup with backoff.
 - Each poll requests the calendar day that is current in the Garmin time zone. Garmin assigns
   data to days in that zone; using Home Assistant's zone would request the wrong day for a user
   travelling or with a mismatched Home Assistant setting.
-- Data held: `GarminConnectPersonalData(summary: DailySummary | None)`.
+- Until the day before is final, each poll also requests it: from 15 minutes after midnight
+  (time for the recorder to compile the day's last hour) until the first poll whose summary
+  for today has a `lastSyncTimestampGMT`. That field is null until the first sync of the new
+  day, and that sync uploads what the watch recorded late the day before. ADR-0023.
+- Data held: `GarminConnectPersonalData(summary: DailySummary | None, previous_day:
+  DailySummary | None)`; `previous_day` is set only while the day before may still change.
 
 ### Device and entities
 
@@ -146,10 +151,33 @@ with the last value of the day before. See DECISIONS.md ADR-0010 for why not `to
 
 Intensity minutes use Garmin's weighting, where a vigorous minute counts as two.
 
+### Correcting the day before
+
+A daily total's state only ever shows the current day, so whatever syncs after midnight for
+the day before never reaches the state, and that day's long-term statistics stop at the last
+value before midnight. When the coordinator has the day before, each daily-total sensor reads
+the day's `change` from the recorder (Garmin's midnight to midnight) and, if it differs from
+Garmin's total for the day, calls the recorder's `async_adjust_statistics` with the difference
+from the day's last hour on. That shifts the running `sum` of every later row by the same
+amount, so the day before gets the full total and later days keep their own change. Reading
+the recorded change, not a value kept in memory, makes the correction safe to repeat after a
+restart. ADR-0023.
+
+Known effects:
+
+- Calorie totals can grow by a lot: resting calories reach the full day only with the first
+  sync after midnight.
+- On the day a sensor is created, the recorder takes its first value as the starting point,
+  so the correction adds that day's data from before the sensor existed.
+- Only the day before is corrected. A watch that does not sync for longer leaves the earlier
+  days short.
+
 ### Diagnostics
 
-The API key, `userProfileId`, `displayName`, `userDailySummaryId` and `uuid` are redacted. The
-raw daily summary is included otherwise, because it is what is needed to debug a wrong value.
+The API key, `userProfileId`, `displayName`, `userDailySummaryId` and `uuid` are redacted, and
+so is `bodyBatteryActivityEventList` as a whole: its entries carry the watch's `deviceId`, the
+activity IDs and names, and the times of sleep and exercise, and no sensor reads it. The raw
+daily summary is included otherwise, because it is what is needed to debug a wrong value.
 
 ### Translations
 

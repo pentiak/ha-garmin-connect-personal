@@ -1,6 +1,7 @@
 {
   "domain": "garmin_connect_personal",
   "name": "Garmin Connect Personal",
+  "after_dependencies": ["recorder"],
   "codeowners": ["@pentiak"],
   "config_flow": true,
   "documentation": "https://github.com/pentiak/ha-garmin-connect-personal",

@@ -17,7 +17,7 @@ async def test_diagnostics_redact_key_and_identity(
     mock_client: AsyncMock,
     mock_config_entry: MockConfigEntry,
 ) -> None:
-    """Test that diagnostics redact the key and account identifiers."""
+    """Test that diagnostics redact the key, account identifiers and activities."""
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
@@ -30,4 +30,5 @@ async def test_diagnostics_redact_key_and_identity(
     assert diagnostics["summary"]["userProfileId"] == "**REDACTED**"
     assert diagnostics["summary"]["userDailySummaryId"] == "**REDACTED**"
     assert diagnostics["summary"]["uuid"] == "**REDACTED**"
+    assert diagnostics["summary"]["bodyBatteryActivityEventList"] == "**REDACTED**"
     assert diagnostics["summary"]["totalKilocalories"] == 655.0

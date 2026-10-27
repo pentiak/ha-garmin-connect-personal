@@ -1,9 +1,10 @@
 """Tests for setting up and polling Garmin Connect Personal."""
 
 from datetime import date, timedelta
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, call
 
 from aio_garmin_personal import (
+    DailySummary,
     GarminPersonalAuthenticationError,
     GarminPersonalConnectionError,
     GarminPersonalRateLimitError,
@@ -20,6 +21,8 @@ from custom_components.garmin_connect_personal.const import DOMAIN
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE
 from homeassistant.core import HomeAssistant
+
+from .conftest import load_json
 
 TOTAL_CALORIES = "sensor.garmin_connect_total_calories"
 
@@ -84,7 +87,7 @@ async def test_day_follows_garmin_time_zone(
     now: str,
     expected_day: date,
 ) -> None:
-    """Test that the requested day is today in the Garmin time zone."""
+    """Test that today and the day before are days in the Garmin time zone."""
     await hass.config.async_set_time_zone("Pacific/Auckland")
     freezer.move_to(now)
     mock_client.async_get_user_settings.return_value = UserSettings.from_dict(
@@ -94,7 +97,10 @@ async def test_day_follows_garmin_time_zone(
 
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
-    mock_client.async_get_daily_summary.assert_awaited_once_with(expected_day)
+    assert mock_client.async_get_daily_summary.await_args_list == [
+        call(expected_day),
+        call(expected_day - timedelta(days=1)),
+    ]
 
 
 async def test_missing_time_zone_uses_home_assistant_zone(
@@ -112,7 +118,9 @@ async def test_missing_time_zone_uses_home_assistant_zone(
 
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
-    mock_client.async_get_daily_summary.assert_awaited_once_with(date(2026, 10, 23))
+    assert mock_client.async_get_daily_summary.await_args_list[0] == call(
+        date(2026, 10, 23)
+    )
     assert "Unknown Garmin time zone" not in caplog.text
 
 
@@ -133,7 +141,9 @@ async def test_unknown_time_zone_uses_home_assistant_zone(
 
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
 
-    mock_client.async_get_daily_summary.assert_awaited_once_with(date(2026, 10, 23))
+    assert mock_client.async_get_daily_summary.await_args_list[0] == call(
+        date(2026, 10, 23)
+    )
     assert "Unknown Garmin time zone Mars/Olympus_Mons" in caplog.text
 
 
@@ -190,3 +200,49 @@ async def test_rejected_key_during_poll_starts_reauth(
 
     (flow,) = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
     assert flow["context"]["source"] == SOURCE_REAUTH
+
+
+async def test_day_before_waits_after_midnight(
+    hass: HomeAssistant,
+    mock_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test that the day before waits until the recorder has compiled its last hour."""
+    freezer.move_to("2026-10-23T22:05:00+00:00")
+    mock_config_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+
+    mock_client.async_get_daily_summary.assert_awaited_once_with(date(2026, 10, 24))
+
+    freezer.tick(timedelta(minutes=10))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    assert mock_client.async_get_daily_summary.await_args_list[1:] == [
+        call(date(2026, 10, 24)),
+        call(date(2026, 10, 23)),
+    ]
+
+
+async def test_day_before_without_recorder_changes_no_state(
+    hass: HomeAssistant,
+    mock_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+    daily_summary: DailySummary,
+) -> None:
+    """Test that the day before is fetched without a recorder and leaves states alone."""
+    yesterday = DailySummary.from_dict(
+        load_json("daily_summary.json") | {"totalKilocalories": 2400}
+    )
+    mock_client.async_get_daily_summary.side_effect = [daily_summary, yesterday]
+    freezer.move_to("2026-10-23T22:20:00+00:00")
+    mock_config_entry.add_to_hass(hass)
+
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert mock_client.async_get_daily_summary.await_count == 2
+    assert hass.states.get(TOTAL_CALORIES).state == "655.0"
