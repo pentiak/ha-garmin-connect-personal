@@ -104,7 +104,9 @@ the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
      long-term statistics for a day match the Garmin Connect app;
    - an expired or deleted key leads to the reauth notification, and a new key fixes it;
    - reconfigure works with a new key for the same account.
-4. Create GitHub release `v0.1.0` of the integration. HACS installs from releases.
+4. Release `v0.1.0` of the integration: a release PR dates the `CHANGELOG.md` entry, then
+   tag the merge commit `v0.1.0`; `release.yml` creates the GitHub release (ADR-0024). HACS
+   installs from releases.
 
 **Done when:** installed through HACS on a real instance and stable for a week.
 
