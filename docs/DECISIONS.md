@@ -77,7 +77,8 @@ start, so the core submission is a copy rather than a rewrite:
 **Status:** accepted, 2026-10-22
 
 All current sensors come from `GET /usersummary-service/usersummary/daily`, one request per
-poll, one coordinator. Garmin publishes no rate limits. Ten minutes keeps the daily request
+poll, one coordinator. After midnight a second request per poll fetches the day before until
+it is final (ADR-0023). Garmin publishes no rate limits. Ten minutes keeps the daily request
 count at 144 and is short compared with how often watches sync. The interval is a constant,
 not an option, following core practice; check core's current policy before adding an option.
 
@@ -304,3 +305,32 @@ commits and the package metadata:
   belong in the workspace `CLAUDE.md`, which is not versioned.
 - **Findings, not measurements.** Observations about the API are written as general
   statements ("resting calories grow through the day"), not as the maintainer's numbers.
+
+## ADR-0023: Correct the day before in the sensors' own statistics
+
+**Status:** accepted, 2026-10-27
+
+Running against a real account showed that a day's long-term statistics end at the last sync
+before midnight. Steps, distance and calories recorded later that evening reach Garmin with the
+first sync after midnight, when the sensors already show the new day, so Home Assistant never
+records them.
+
+After midnight the coordinator also fetches the day before, until today's summary has a last
+sync time (DESIGN.md, Coordinator). Each daily-total sensor then compares Garmin's total with
+the change the recorder holds for that day, and adds the difference to its own statistic with
+`Recorder.async_adjust_statistics`, from the day's last hour on. The same operation backs
+"Adjust a statistic" in the developer tools: it adds the amount to the `sum` of every row from
+that hour on, so later days keep their own change and no spike appears.
+
+Alternatives:
+
+- **External statistics** (`garmin_connect_personal:…`, as opower and ista_ecotrend do) would
+  hold correct daily totals, but next to the sensor's statistic, which would stay short. The
+  user would see two step counts per day that disagree. External statistics remain the way to
+  import history from before the entry existed (PLAN.md, phase 5).
+- **Keeping yesterday's state until the first sync** would put the late data into the
+  statistics, but in the hour of the sync, so on the wrong day.
+
+No core integration calls `async_adjust_statistics` today; only the recorder's WebSocket API
+does. Expect to explain this in the core review, and fall back to external statistics if
+reviewers reject it.
