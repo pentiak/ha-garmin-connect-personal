@@ -4,14 +4,25 @@
 
 Update this section at the end of every working session.
 
-- **Last updated:** 2026-10-23
+- **Last updated:** 2026-10-27
 - **Current phase:** 3 (integration in a real Home Assistant, first HACS release)
 - **State:** Phases 0 to 2 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
   repositories were recreated on 2026-10-23 with a single fresh commit each; ADR-0021
   records what they may contain. Both are public, and their settings match Repository
   settings below. aio-garmin-personal 0.1.0 is on PyPI, published by `release.yml` through
   trusted publishing.
-- **Next step:** phase 3 step 3, run the integration in a real Home Assistant.
+- **Phase 3 step 3 in progress:** 0.1.0 has run since 2026-10-23 on a real instance with two
+  accounts. Daily totals reset at local midnight, including the DST change on 2026-10-25,
+  and no update has failed. Three findings, each fixed on its own branch, none merged yet:
+  - `redact-activity-events`: diagnostics left the activity event list unredacted.
+  - `title-from-full-name` (ADR-0022): entries without a display name were all titled
+    "Garmin Connect". Needs aio-garmin-personal 0.2.0 (branch `activity-list` there), so its
+    CI fails until that release is on PyPI.
+  - `correct-previous-day` (ADR-0023): data synced after midnight never reached the day it
+    belongs to in the long-term statistics.
+- **Next step:** release aio-garmin-personal 0.2.0 and merge the three branches; run the new
+  version for a few nights and compare the daily statistics with the Garmin Connect app;
+  test reauth and reconfigure; then release `v0.1.0`.
 
 ## Phases
 
@@ -121,7 +132,8 @@ it. Candidates, from the endpoints in the OpenAPI document:
 - Body Battery details, SpO2, respiration: some are already in the daily summary.
 - Weight: `/weight-service/weight/range/{startDate}/{endDate}`.
 - Last activity: `/activitylist-service/activities/search/activities`.
-- History import into long-term statistics from `/usersummary-service/v2/dailysummaries`.
+- History import into long-term statistics from `/usersummary-service/v2/dailysummaries`,
+  as external statistics; the sensors' own statistics only cover the day before (ADR-0023).
 
 A second coordinator with a longer interval suits data that changes once a day (sleep, HRV).
 
