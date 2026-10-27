@@ -147,8 +147,10 @@ Intensity minutes use Garmin's weighting, where a vigorous minute counts as two.
 
 ### Diagnostics
 
-The API key, `userProfileId`, `displayName`, `userDailySummaryId` and `uuid` are redacted. The
-raw daily summary is included otherwise, because it is what is needed to debug a wrong value.
+The API key, `userProfileId`, `displayName`, `userDailySummaryId` and `uuid` are redacted, and
+so is `bodyBatteryActivityEventList` as a whole: its entries carry the watch's `deviceId`, the
+activity IDs and names, and the times of sleep and exercise, and no sensor reads it. The raw
+daily summary is included otherwise, because it is what is needed to debug a wrong value.
 
 ### Translations
 
