@@ -1,0 +1,25 @@
+[
+  {
+    "activityId": 10000000001,
+    "activityName": "Morning Run",
+    "startTimeLocal": "2026-10-22 07:15:02",
+    "startTimeGMT": "2026-10-22 05:15:02",
+    "activityType": {"typeId": 1, "typeKey": "running", "parentTypeId": 17},
+    "distance": 8012.4,
+    "duration": 2701.3,
+    "ownerId": 123456789,
+    "ownerDisplayName": "00000000-0000-4000-8000-000000000000",
+    "ownerFullName": "Alex Example"
+  },
+  {
+    "activityId": 10000000002,
+    "activityName": null,
+    "startTimeLocal": "2026-10-20 18:40:11",
+    "startTimeGMT": "2026-10-20 16:40:11",
+    "activityType": {"typeId": 2, "typeKey": "cycling", "parentTypeId": 17},
+    "distance": 20550.0,
+    "duration": 3920.0,
+    "ownerId": 123456789,
+    "ownerDisplayName": "00000000-0000-4000-8000-000000000000"
+  }
+]

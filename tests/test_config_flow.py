@@ -5,6 +5,7 @@ from datetime import date
 from unittest.mock import AsyncMock, patch
 
 from aio_garmin_personal import (
+    Activity,
     DailySummary,
     GarminPersonalAuthenticationError,
     GarminPersonalConnectionError,
@@ -50,7 +51,7 @@ async def test_user_flow_creates_entry(
     )
 
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Garmin Connect"
+    assert result["title"] == "Alex Example"
     assert result["data"] == {CONF_API_KEY: "new-key"}
     assert result["result"].unique_id == ACCOUNT_ID
 
@@ -124,14 +125,14 @@ async def test_user_flow_empty_summary_is_unknown_error(
     ("display_name", "title"),
     [
         ("Trail Runner", "Trail Runner"),
-        ("00000000-0000-4000-8000-000000000000", "Garmin Connect"),
-        (None, "Garmin Connect"),
+        ("00000000-0000-4000-8000-000000000000", "Alex Example"),
+        (None, "Alex Example"),
     ],
 )
-async def test_user_flow_title_from_display_name(
+async def test_user_flow_title_from_display_name_or_full_name(
     hass: HomeAssistant, mock_client: AsyncMock, display_name: str | None, title: str
 ) -> None:
-    """Test the title for a display name, a generated UUID and none."""
+    """Test that a set display name wins over the full name from the activities."""
     settings = load_json("user_settings.json") | {"displayName": display_name}
     mock_client.async_get_user_settings.return_value = UserSettings.from_dict(settings)
 
@@ -143,6 +144,49 @@ async def test_user_flow_title_from_display_name(
     )
 
     assert result["title"] == title
+
+
+@pytest.mark.parametrize(
+    "activities",
+    [
+        [],
+        [Activity.from_dict({"activityId": 1})],
+        [Activity.from_dict({"activityId": 1, "ownerFullName": "  "})],
+    ],
+    ids=["no-activities", "no-full-name", "blank-full-name"],
+)
+async def test_user_flow_title_without_full_name(
+    hass: HomeAssistant, mock_client: AsyncMock
+) -> None:
+    """Test the default title for an account whose activities give no name."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_API_KEY: "key"}
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Garmin Connect"
+
+
+async def test_user_flow_title_when_activities_fail(
+    hass: HomeAssistant, mock_client: AsyncMock
+) -> None:
+    """Test that an unreadable activity list still creates the entry."""
+    mock_client.async_get_activities.side_effect = GarminPersonalResponseError(
+        "GET returned HTTP 403", 403
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {CONF_API_KEY: "key"}
+    )
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["title"] == "Garmin Connect"
 
 
 async def test_user_flow_aborts_for_configured_account(
