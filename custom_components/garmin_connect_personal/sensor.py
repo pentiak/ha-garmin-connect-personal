@@ -2,21 +2,28 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, time
+from datetime import date, datetime, time, timedelta
+import math
+from typing import override
 
 from aio_garmin_personal import DailySummary
 
+from homeassistant.components.recorder.statistics import statistic_during_period
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
 )
+from homeassistant.components.sensor.const import UNIT_CONVERTERS
 from homeassistant.const import EntityCategory, UnitOfEnergy, UnitOfLength, UnitOfTime
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.recorder import get_instance
+from homeassistant.util import dt as dt_util
 
 from . import GarminConnectPersonalConfigEntry
+from .const import LOGGER
 from .coordinator import GarminConnectPersonalCoordinator
 from .entity import GarminConnectPersonalEntity
 
@@ -154,6 +161,7 @@ class GarminConnectPersonalSensor(GarminConnectPersonalEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator, description.key)
         self.entity_description = description
+        self._corrected_day: tuple[date, float] | None = None
 
     @property
     def native_value(self) -> float | int | datetime | None:
@@ -174,4 +182,86 @@ class GarminConnectPersonalSensor(GarminConnectPersonalEntity, SensorEntity):
             return None
         return datetime.combine(
             summary.calendar_date, time.min, tzinfo=self.coordinator.time_zone
+        )
+
+    @override
+    async def async_added_to_hass(self) -> None:
+        """Correct the day before if the first refresh fetched it."""
+        await super().async_added_to_hass()
+        self._async_schedule_correction()
+
+    @callback
+    @override
+    def _handle_coordinator_update(self) -> None:
+        """Write the new state, and correct the day before when Garmin has more for it."""
+        self._async_schedule_correction()
+        super()._handle_coordinator_update()
+
+    @callback
+    def _async_schedule_correction(self) -> None:
+        """Start correcting the day before, for a daily total, if the poll fetched it."""
+        if (
+            self.state_class is SensorStateClass.TOTAL
+            and (previous_day := self.coordinator.data.previous_day) is not None
+            and "recorder" in self.hass.config.components
+        ):
+            self.coordinator.config_entry.async_create_background_task(
+                self.hass,
+                self._async_correct_day(previous_day),
+                f"{self.entity_id} correct {previous_day.calendar_date}",
+            )
+
+    async def _async_correct_day(self, summary: DailySummary) -> None:
+        """Make the long-term statistics of a past day match Garmin's final total.
+
+        Data synced after midnight never reaches the state, so the day's change in the
+        statistics stops at the last value before midnight. The difference is added to
+        the statistics from the day's last hour on, which raises that day's total and
+        leaves the totals of later days as they were.
+        """
+        value = self.entity_description.value_fn(summary)
+        if not isinstance(value, int | float):
+            return
+        if self._corrected_day == (summary.calendar_date, value):
+            return
+        # Set before reading, so that a second poll cannot apply the same difference.
+        self._corrected_day = (summary.calendar_date, value)
+        zone = self.coordinator.time_zone
+        start = datetime.combine(summary.calendar_date, time.min, tzinfo=zone)
+        end = datetime.combine(
+            summary.calendar_date + timedelta(days=1), time.min, tzinfo=zone
+        )
+        unit = self.native_unit_of_measurement
+        units = None
+        if unit and (converter := UNIT_CONVERTERS.get(self.device_class)):
+            units = {converter.UNIT_CLASS: unit}
+        recorder = get_instance(self.hass)
+        recorded = (
+            await recorder.async_add_executor_job(
+                statistic_during_period,
+                self.hass,
+                start,
+                end,
+                self.entity_id,
+                {"change"},
+                units,
+            )
+        ).get("change")
+        # No statistics for that day: the sensor did not exist or was disabled.
+        if recorded is None:
+            self._corrected_day = None
+            return
+        if math.isclose(value, recorded, abs_tol=1e-6):
+            return
+        last_hour = dt_util.as_utc(end - timedelta(minutes=1)).replace(
+            minute=0, second=0, microsecond=0
+        )
+        LOGGER.debug(
+            "Adding %s to the statistics of %s for %s",
+            value - recorded,
+            self.entity_id,
+            summary.calendar_date,
+        )
+        recorder.async_adjust_statistics(
+            self.entity_id, last_hour, value - recorded, unit or ""
         )

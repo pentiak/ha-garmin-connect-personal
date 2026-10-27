@@ -8,7 +8,16 @@ from homeassistant.core import HomeAssistant
 
 from . import GarminConnectPersonalConfigEntry
 
-TO_REDACT = {CONF_API_KEY, "displayName", "userProfileId", "userDailySummaryId", "uuid"}
+# The activity event list names the watch and the activities, and when they took place.
+# No sensor reads it.
+TO_REDACT = {
+    CONF_API_KEY,
+    "bodyBatteryActivityEventList",
+    "displayName",
+    "userProfileId",
+    "userDailySummaryId",
+    "uuid",
+}
 
 
 async def async_get_config_entry_diagnostics(
