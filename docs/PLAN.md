@@ -9,20 +9,18 @@ Update this section at the end of every working session.
 - **State:** Phases 0 to 2 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
   repositories were recreated on 2026-10-23 with a single fresh commit each; ADR-0021
   records what they may contain. Both are public, and their settings match Repository
-  settings below. aio-garmin-personal 0.1.0 is on PyPI, published by `release.yml` through
-  trusted publishing.
-- **Phase 3 step 3 in progress:** 0.1.0 has run since 2026-10-23 on a real instance with two
-  accounts. Daily totals reset at local midnight, including the DST change on 2026-10-25,
-  and no update has failed. Three findings, each fixed on its own branch, none merged yet:
-  - `redact-activity-events`: diagnostics left the activity event list unredacted.
-  - `title-from-full-name` (ADR-0022): entries without a display name were all titled
-    "Garmin Connect". Needs aio-garmin-personal 0.2.0 (branch `activity-list` there), so its
-    CI fails until that release is on PyPI.
-  - `correct-previous-day` (ADR-0023): data synced after midnight never reached the day it
-    belongs to in the long-term statistics.
-- **Next step:** release aio-garmin-personal 0.2.0 and merge the three branches; run the new
-  version for a few nights and compare the daily statistics with the Garmin Connect app;
-  test reauth and reconfigure; then release `v0.1.0`.
+  settings below. aio-garmin-personal 0.2.0 is on PyPI, published by `release.yml` through
+  trusted publishing. Both repositories release from a tag (ADR-0024).
+- **Phase 3 step 3 in progress:** the first version ran from 2026-10-23 on a real instance
+  with two accounts. Daily totals reset at Garmin's midnight, including the DST change on
+  2026-10-25, and no update failed. Its three findings are fixed on `master`: diagnostics
+  redact the activity event list, an entry without a display name is titled with the
+  account holder's name (ADR-0022), and data synced after midnight is added to the day
+  before (ADR-0023). The instance does not run that code yet.
+- **Next step:** install `master` on the instance (HACS → redownload, or copy
+  `custom_components/garmin_connect_personal`), run it for a few nights, and compare the
+  daily statistics with the Garmin Connect app; test reauth and reconfigure; then the release
+  PR for `v0.1.0`, which dates the `CHANGELOG.md` entry.
 
 ## Phases
 
