@@ -33,9 +33,9 @@ The facts the design depends on. Sources: Garmin's OpenAPI document (kept in
 | Fact | Value | Source |
 |---|---|---|
 | Base URL | `https://personal.connectapi.garmin.com` | OpenAPI `servers` |
-| Token endpoint | `POST /personalapitoken-service/personal-api/personal-api-key/token`, header `Authorization: ApiKey <key>`, body is the JWT as `text/plain`. A wrong key gives 401 with an empty body. | Garmin client `auth.py`; real API |
+| Token endpoint | `POST /personalapitoken-service/personal-api/personal-api-key/token`, header `Authorization: ApiKey <key>`, body is the JWT as `text/plain`. A wrong key gives 401 with an empty body, a deleted key 404. | Garmin client `auth.py`; real API |
 | Data requests | `Authorization: Bearer <JWT>` | Garmin client `client.py` |
-| Token lifetime | 24 hours, or until the key expires if that is sooner. No refresh tokens. Expiry read from the JWT `exp` claim without verifying the signature. | FAQ; Garmin client; real API |
+| Token lifetime | 24 hours, or until the key expires if that is sooner; revoked when the key is deleted. No refresh tokens. Expiry read from the JWT `exp` claim without verifying the signature. | FAQ; Garmin client; real API |
 | Token claims | RS256, issuer `https://diauth.garmin.com`, `garmin_guid`, `scope`, `exp`/`iat`. No key expiry, no `userProfileId`. | Real API |
 | Key lifetime | 30 days, 90 days, 180 days or one year, chosen by the user. Garmin emails about a week before expiry. Shown once at creation. | FAQ |
 | Endpoints | 26, all `GET`, read-only | OpenAPI |
@@ -83,7 +83,7 @@ importing history into long-term statistics later. It is not used for live senso
 
 | Condition | Library exception | Integration behaviour |
 |---|---|---|
-| Token endpoint 401 or 403; data endpoint 401 twice | `GarminPersonalAuthenticationError` | `ConfigEntryAuthFailed`: entities unavailable, reauth flow starts |
+| Token endpoint 401, 403 or 404 (deleted key); data endpoint 401 twice | `GarminPersonalAuthenticationError` | `ConfigEntryAuthFailed`: entities unavailable, reauth flow starts |
 | HTTP 429 | `GarminPersonalRateLimitError` (`retry_after` from `Retry-After`) | `UpdateFailed(retry_after=…)`: unavailable, next poll delayed |
 | Network error or timeout | `GarminPersonalConnectionError` | `UpdateFailed`: unavailable, logged once (coordinator) |
 | Other non-2xx (403 on a data endpoint included), invalid JSON, missing required fields | `GarminPersonalResponseError` (`status`) | `UpdateFailed` |

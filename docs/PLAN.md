@@ -164,8 +164,9 @@ Answered 2026-10-23 from the real API unless marked open.
    `calendarDate`, `displayName`, `source`, the `includes*` flags (false), every metric null.
    The same for a future date and for 2001-01-01. Never 204 or an empty body.
 3. **What does the token endpoint return for a bad key?** A wrong key gives 401 with an empty
-   body and `WWW-Authenticate: Bearer`. *Open:* expired and deleted keys, testable only when
-   one expires or by deleting a key.
+   body and `WWW-Authenticate: Bearer`. A deleted key gives 404 (checked 2026-10-27), and the
+   tokens already issued for it are rejected with 401 from the next request on. *Open:* an
+   expired key, testable only when one expires.
 4. **Which claims does the JWT carry?** RS256; `iss` `https://diauth.garmin.com`; `exp − iat`
    = 86 400 s; `garmin_guid`, `client_id`, `jti`, `scope` (`CONNECT_READ` and
    `PERSONAL_API_{FITNESS,NUTRITION,USER,WELLNESS}_READ`). No key expiry and no
