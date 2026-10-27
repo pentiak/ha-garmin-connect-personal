@@ -9,6 +9,6 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/pentiak/ha-garmin-connect-personal/issues",
   "loggers": ["aio_garmin_personal"],
-  "requirements": ["aio-garmin-personal==0.2.0"],
+  "requirements": ["aio-garmin-personal==0.2.1"],
   "version": "0.1.0"
 }
