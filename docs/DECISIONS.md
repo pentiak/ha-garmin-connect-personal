@@ -315,6 +315,11 @@ profile settings have no other name field. Garmin returns the account holder's f
 as `ownerFullName` on activities, so the config flow reads the most recent activity
 (`limit=1`).
 
+Checked against the real API on 2026-10-27: `ownerFullName` is set on activities of an account
+whose display name is a UUID, and holds the name as entered in the profile, which may be a
+first name only. `limit` is honoured, and `startTimeGMT` has the form `2026-10-27 15:20:09`.
+Activities also carry start and end coordinates, so their raw data must not reach diagnostics.
+
 The title is the first of:
 
 1. the display name, when it is set and is not a UUID: the user chose it;
