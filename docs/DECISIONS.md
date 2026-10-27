@@ -304,3 +304,31 @@ commits and the package metadata:
   belong in the workspace `CLAUDE.md`, which is not versioned.
 - **Findings, not measurements.** Observations about the API are written as general
   statements ("resting calories grow through the day"), not as the maintainer's numbers.
+
+## ADR-0024: Releases are tagged by hand and published by a workflow
+
+**Status:** accepted, 2026-10-27
+
+Both repositories release the same way. A release PR sets the version (`version` in the
+library's `pyproject.toml`, in the integration's `manifest.json`) and moves the changelog
+entries under a `## X.Y.Z - YYYY-MM-DD` heading. After it merges, the maintainer tags that
+commit on `master` as `vX.Y.Z`. The tag starts `release.yml`, which checks that the tag matches
+the version and creates the GitHub release with that changelog section as its notes; the
+library's workflow also publishes to PyPI first. A missing section fails the workflow before
+anything is published. HACS installs the integration from these GitHub releases.
+
+`gh`, preinstalled on the runners, creates the release, so no further action has to be pinned
+(ADR-0019).
+
+release-please was considered and not adopted:
+
+- It derives versions and changelogs from Conventional Commits. Neither repository uses them,
+  and with squash merges every PR title would have to follow them.
+- A tag it creates with the workflow token does not start other workflows, so the library's
+  PyPI publishing on tag push would need a personal access token, a GitHub App, or to move into
+  the release-please workflow.
+- It adds an action with write permissions to two repositories that release rarely, to save
+  one small commit and one tag per release.
+
+Revisit if releases become frequent or other contributors join.
+
