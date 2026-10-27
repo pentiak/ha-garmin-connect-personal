@@ -132,15 +132,28 @@ async def _async_identify_account(client: GarminPersonalClient) -> tuple[str, st
     summary = await client.async_get_daily_summary(dt_util.now(zone).date())
     if summary is None:
         raise GarminPersonalResponseError("Daily summary response was empty")
-    return str(summary.user_profile_id), _title(settings.display_name)
+    title = _display_name(settings.display_name) or await _async_full_name(client)
+    return str(summary.user_profile_id), title or DEFAULT_TITLE
 
 
-def _title(display_name: str | None) -> str:
+def _display_name(display_name: str | None) -> str | None:
     """Return the display name, unless Garmin has filled it with a generated UUID."""
     if not display_name:
-        return DEFAULT_TITLE
+        return None
     try:
         UUID(display_name)
     except ValueError:
         return display_name
-    return DEFAULT_TITLE
+    return None
+
+
+async def _async_full_name(client: GarminPersonalClient) -> str | None:
+    """Return the account holder's full name, which Garmin only lists on activities."""
+    try:
+        activities = await client.async_get_activities(limit=1)
+    except GarminPersonalResponseError:
+        LOGGER.debug("Could not read the activities for the entry title", exc_info=True)
+        return None
+    if not activities or not (name := activities[0].owner_full_name):
+        return None
+    return name.strip() or None

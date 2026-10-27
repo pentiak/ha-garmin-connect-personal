@@ -58,6 +58,7 @@ PLAN.md):
 |---|---|
 | `GET /userprofile-service/userprofile/settings` | Display name and time zone, once per setup |
 | `GET /usersummary-service/usersummary/daily?calendarDate=YYYY-MM-DD` | All current sensors, every poll; also the account ID in the config flow |
+| `GET /activitylist-service/activities/search/activities?limit=1` | The owner's full name for the entry title, in the config flow only |
 
 `GET /usersummary-service/v2/dailysummaries` returns the same data for a date range of up to a
 year, with calories nested under `calories.burnedTotal` and similar. It is the candidate for
@@ -100,9 +101,9 @@ so Home Assistant retries setup with backoff.
 - `unique_id` = Garmin `userProfileId` as a string. It appears only in daily summaries, so the
   config flow fetches today's summary (today in the Garmin time zone). Garmin returns one for
   any day, so this always identifies the account.
-- Title = display name from the profile settings, or "Garmin Connect" when it is missing or a
-  UUID. The device is named after the title, so entity IDs start with `sensor.garmin_connect_`
-  for most users.
+- Title = display name from the profile settings, unless it is missing or a UUID; then the
+  `ownerFullName` of the most recent activity; then "Garmin Connect" (ADR-0022). The device is
+  named after the title, and entity IDs after the device.
 - Flows: `user` (paste key), `reauth_confirm` (after Garmin rejects the key), `reconfigure`
   (replace a working key before it expires). Reauth and reconfigure abort with `wrong_account`
   when the new key belongs to a different `userProfileId`.

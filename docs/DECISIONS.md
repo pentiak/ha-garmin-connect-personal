@@ -220,7 +220,7 @@ Check with `git config --local user.email` before the first commit in a fresh cl
 
 ## ADR-0017: Entry title from the display name, unless it is a UUID
 
-**Status:** accepted, 2026-10-23
+**Status:** accepted, 2026-10-23; amended by ADR-0022
 
 Garmin fills `displayName` with a generated UUID for accounts that never set a display name.
 Using it as the title would put the UUID into the device name and every entity ID. The title is
@@ -305,6 +305,32 @@ commits and the package metadata:
   belong in the workspace `CLAUDE.md`, which is not versioned.
 - **Findings, not measurements.** Observations about the API are written as general
   statements ("resting calories grow through the day"), not as the maintainer's numbers.
+
+## ADR-0022: The full name from the activities titles an entry without a display name
+
+**Status:** accepted, 2026-10-27
+
+Accounts often never set a display name, so under ADR-0017 every such entry was titled "Garmin
+Connect". Two accounts in one Home Assistant could only be told apart by renaming them. The
+profile settings have no other name field. Garmin returns the account holder's full name only
+as `ownerFullName` on activities, so the config flow reads the most recent activity
+(`limit=1`).
+
+Checked against the real API on 2026-10-27: `ownerFullName` is set on activities of an account
+whose display name is a UUID, and holds the name as entered in the profile, which may be a
+first name only. `limit` is honoured, and `startTimeGMT` has the form `2026-10-27 15:20:09`.
+Activities also carry start and end coordinates, so their raw data must not reach diagnostics.
+
+The title is the first of:
+
+1. the display name, when it is set and is not a UUID: the user chose it;
+2. the full name from the most recent activity;
+3. "Garmin Connect".
+
+An account without activities, an activity without a name, or an activity list that cannot be
+read leads to the next step, never to a failed flow. The title is set when the entry is
+created; existing entries keep theirs. The full name ends up in the device name and the entity
+IDs, as a display name does.
 
 ## ADR-0023: Correct the day before in the sensors' own statistics
 
