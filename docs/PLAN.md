@@ -4,23 +4,25 @@
 
 Update this section at the end of every working session.
 
-- **Last updated:** 2026-10-27
+- **Last updated:** 2026-10-28
 - **Current phase:** 3 (integration in a real Home Assistant, first HACS release)
 - **State:** Phases 0 to 2 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
   repositories were recreated on 2026-10-23 with a single fresh commit each; ADR-0021
   records what they may contain. Both are public, and their settings match Repository
-  settings below. aio-garmin-personal 0.2.0 is on PyPI, published by `release.yml` through
+  settings below. aio-garmin-personal 0.2.1 is on PyPI, published by `release.yml` through
   trusted publishing. Both repositories release from a tag (ADR-0024).
-- **Phase 3 step 3 in progress:** the first version ran from 2026-10-23 on a real instance
-  with two accounts. Daily totals reset at Garmin's midnight, including the DST change on
-  2026-10-25, and no update failed. Its three findings are fixed on `master`: diagnostics
-  redact the activity event list, an entry without a display name is titled with the
-  account holder's name (ADR-0022), and data synced after midnight is added to the day
-  before (ADR-0023). The instance does not run that code yet.
-- **Next step:** install `master` on the instance (HACS → redownload, or copy
-  `custom_components/garmin_connect_personal`), run it for a few nights, and compare the
-  daily statistics with the Garmin Connect app; test reauth and reconfigure; then the release
-  PR for `v0.1.0`, which dates the `CHANGELOG.md` entry.
+- **Phase 3 step 3 in progress:** the integration has run on a real instance with two
+  accounts since 2026-10-23, installed through HACS from `master` since 2026-10-27. Daily
+  totals reset at Garmin's midnight, including the DST change on 2026-10-25. Checked on the
+  instance:
+  - the day before is corrected after a late sync (ADR-0023): the corrected totals for
+    2026-10-26 match the Garmin Connect app, and later days were unchanged;
+  - deleting the key in Garmin Connect starts reauthentication at the next poll, and
+    entering a new key brings the entry back. Before 0.2.1 the token endpoint's 404 for a
+    deleted key was reported as a temporary failure and no reauth started;
+  - reconfigure with a new key for the same account works.
+- **Next step:** run it for a few more nights and compare yesterday's totals with the app
+  each morning; then the release PR for `v0.1.0`, which dates the `CHANGELOG.md` entry.
 
 ## Phases
 
@@ -100,8 +102,9 @@ the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
    least several days across midnight and check:
    - daily totals start a new statistics cycle at Garmin midnight (`last_reset`), and the
      long-term statistics for a day match the Garmin Connect app;
-   - an expired or deleted key leads to the reauth notification, and a new key fixes it;
-   - reconfigure works with a new key for the same account.
+   - an expired or deleted key leads to the reauth notification, and a new key fixes it
+     (deleted key checked 2026-10-28);
+   - reconfigure works with a new key for the same account (checked 2026-10-27).
 4. Release `v0.1.0` of the integration: a release PR dates the `CHANGELOG.md` entry, then
    tag the merge commit `v0.1.0`; `release.yml` creates the GitHub release (ADR-0024). HACS
    installs from releases.
