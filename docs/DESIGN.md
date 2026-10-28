@@ -87,8 +87,19 @@ the real API on 2026-10-28:
 - **Errors.** Error responses have an empty body or `{}`.
 - **Activity file download** returns a ZIP (`application/x-zip-compressed`) and answers 406
   to `Accept: application/octet-stream`; it needs `Accept: */*`.
-- **Activity search** honours `startDate`, `endDate` and `activityType`; an unknown
-  `activityType` gives 400, and a large `limit` gave 500.
+- **Weight** values are grams whatever the profile's unit system. Weight timestamps and the
+  range average's `from` and `until` are epoch milliseconds. `includeAll=true` fills each
+  day's `allWeightMetrics`; without it only `latestWeight` is set.
+- **Activities.** Totals are metres, seconds and metres per second, and the list and the
+  detail view agree on them. Detail timestamps separate date and time with `T`, list
+  timestamps with a space. The activity coordinates are in both.
+- **Activity search** honours `startDate` and `endDate` as inclusive local days, and
+  `activityType`; filtering by a subtype also returned other types, and an unknown type gives
+  400. Large `limit` values give 500, but not at a fixed value: the same limit failed once and
+  succeeded later.
+- **Dates in the OpenAPI document** are often typed as an object with `date` and `localDate`;
+  every real response so far sent a plain `yyyy-MM-dd` string instead. The library accepts
+  both.
 - **`weight/all`** answered 400 to every request tried; the library leaves it out.
 
 ## Library: aio-garmin-personal

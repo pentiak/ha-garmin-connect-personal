@@ -406,7 +406,7 @@ one at a time (phase 5); the library does not wait for it.
   findings go into DESIGN.md as general statements (ADR-0021); fixtures are made up in the
   recorded shape.
 - **Unverified endpoints are marked.** Where the maintainer's account has no data (hydration,
-  nutrition, the menstrual cycle), the model is typed from the document and its docstring
+  weight goals, nutrition, the menstrual cycle), the model is typed from the document and its docstring
   says so, until a real response confirms it.
 - **One convention for names.** Per-day models are named `Daily…`; instants end in
   `_time_gmt` and are timezone-aware UTC; quantities carry their unit in the name
