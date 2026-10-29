@@ -387,3 +387,35 @@ release-please was considered and not adopted:
   one small commit and one tag per release.
 
 Revisit if releases become frequent or other contributors join.
+
+## ADR-0025: The library covers the whole Personal API, typed from probed responses
+
+**Status:** accepted, 2026-10-28
+
+aio-garmin-personal is useful without Home Assistant, so it covers every endpoint in Garmin's
+OpenAPI document, not only those the integration uses. The integration keeps adding sensors
+one at a time (phase 5); the library does not wait for it.
+
+- **Typed fields plus `raw`.** Each response becomes a frozen dataclass with the fields a
+  caller is likely to use, and the decoded JSON in `raw`. The document lists about 1,600
+  fields in 109 schemas; typing all of them would be large and partly wrong, because the real
+  responses already differ from the schemas (fields missing, epoch milliseconds where the
+  document says ISO strings). Anything not typed is still in `raw`.
+- **Probe first.** Before a model is written, a script run with the maintainer's key records
+  each endpoint's field names, JSON types, null patterns and range limits, never values. The
+  findings go into DESIGN.md as general statements (ADR-0021); fixtures are made up in the
+  recorded shape.
+- **Unverified endpoints are marked.** Where the maintainer's account has no data (hydration,
+  weight goals, nutrition, the menstrual cycle), the model is typed from the document and its docstring
+  says so, until a real response confirms it.
+- **One convention for names.** Per-day models are named `Daily…`; instants end in
+  `_time_gmt` and are timezone-aware UTC; quantities carry their unit in the name
+  (`_seconds`, `_meters`, `_ml`) and keep Garmin's unit.
+- **Argument checks stay small.** A range with `start` after `end` raises `ValueError`
+  without a request. The longest range per endpoint is documented, not enforced, because it
+  is Garmin's and may change; a longer range raises `GarminPersonalResponseError` with 400.
+- **Left out:** `/weight-service/weight/all/{startDate}/{endDate}`, which answered HTTP 400 to
+  every request tried, including single days that have a weight entry.
+  `/weight-service/weight/range/{startDate}/{endDate}` returns the same entries.
+
+The endpoints arrive in batches, one PR each, released together as 0.3.0.

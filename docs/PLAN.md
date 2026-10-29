@@ -135,8 +135,16 @@ the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
 
 ### Phase 5: More data
 
-Each item needs a library method, tests, and a library release before the integration can use
-it. Candidates, from the endpoints in the OpenAPI document:
+Library side (ADR-0025, independent of the integration's phases): every endpoint gets a
+typed method, in batches released together as aio-garmin-personal 0.3.0.
+
+1. Daily wellness: sleep, HRV, heart rate, SpO2, Body Battery, the daily statistics and
+   `v2/dailysummaries`, wellness activities.
+2. Body: weight range, weight goal, fitness age, heart rate zones.
+3. Activities: detail, workouts, file download, and search filters for the activity list.
+4. Nutrition and the menstrual cycle, typed from the OpenAPI document.
+
+Integration side, after phase 3: each sensor needs the library release first. Candidates:
 
 - Sleep: `/sleep-service/sleep/dailySleep` (score, duration, stages).
 - HRV: `/hrv-service/hrv/{calendarDate}` (last night average, status).

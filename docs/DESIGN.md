@@ -60,9 +60,47 @@ PLAN.md):
 | `GET /usersummary-service/usersummary/daily?calendarDate=YYYY-MM-DD` | All current sensors, every poll; also the account ID in the config flow |
 | `GET /activitylist-service/activities/search/activities?limit=1` | The owner's full name for the entry title, in the config flow only |
 
-`GET /usersummary-service/v2/dailysummaries` returns the same data for a date range of up to a
-year, with calories nested under `calories.burnedTotal` and similar. It is the candidate for
-importing history into long-term statistics later. It is not used for live sensors.
+`GET /usersummary-service/v2/dailysummaries` returns the same data for a date range, with
+calories nested under `calories.burnedTotal` and similar. It is the candidate for importing
+history into long-term statistics later. It is not used for live sensors.
+
+### Other endpoints
+
+The library covers the rest of the API for other users (ADR-0025). Behaviour checked against
+the real API on 2026-10-28:
+
+- **Days without data.** HRV answers 204. Sleep, SpO2 and heart rate answer 200 with an object
+  whose metrics are null; for sleep `calendarDate` is null too. The menstrual cycle endpoints
+  answer 204 for an account that does not track it.
+- **Timestamps.** Sleep start and end are epoch milliseconds, `*Local` included. Time series
+  (heart rate, Body Battery, SpO2) are arrays of rows whose columns are named by a separate
+  descriptor list, with the timestamp in epoch milliseconds. Other `*GMT` fields are ISO
+  strings without an offset.
+- **Units.** The stress statistics endpoint reports durations in seconds; `v2/dailysummaries`
+  reports the same durations in milliseconds. HRV is in milliseconds, sleep need in minutes.
+- **Ranges.** Both ends are included. A reversed range gives 400. Longest accepted spans: 28
+  days for the steps and stress statistics, 31 for hydration and Body Battery, 32 for sleep
+  summaries, 367 for HRV summaries; weight, weight goal and wellness activities accepted
+  three years. `v2/dailysummaries` gives 400 above about a year, and also answered 500 for
+  ranges of several months, depending on the dates, so callers should ask for a few months
+  at a time.
+- **Errors.** Error responses have an empty body or `{}`.
+- **Activity file download** returns a ZIP (`application/x-zip-compressed`) and answers 406
+  to `Accept: application/octet-stream`; it needs `Accept: */*`.
+- **Weight** values are grams whatever the profile's unit system. Weight timestamps and the
+  range average's `from` and `until` are epoch milliseconds. `includeAll=true` fills each
+  day's `allWeightMetrics`; without it only `latestWeight` is set.
+- **Activities.** Totals are metres, seconds and metres per second, and the list and the
+  detail view agree on them. Detail timestamps separate date and time with `T`, list
+  timestamps with a space. The activity coordinates are in both.
+- **Activity search** honours `startDate` and `endDate` as inclusive local days, and
+  `activityType`; filtering by a subtype also returned other types, and an unknown type gives
+  400. Large `limit` values give 500, but not at a fixed value: the same limit failed once and
+  succeeded later.
+- **Dates in the OpenAPI document** are often typed as an object with `date` and `localDate`;
+  every real response so far sent a plain `yyyy-MM-dd` string instead. The library accepts
+  both.
+- **`weight/all`** answered 400 to every request tried; the library leaves it out.
 
 ## Library: aio-garmin-personal
 
@@ -73,9 +111,10 @@ importing history into long-term statistics later. It is not used for live senso
   callers share one exchange. Nothing is written to disk.
 - A data request answered with 401 drops the cached token and is retried once with a new
   token. A second 401 raises `GarminPersonalAuthenticationError`.
-- Responses are parsed into frozen dataclasses (`DailySummary`, `UserSettings`). Each metric is
-  optional and becomes `None` when missing or of the wrong type. `userProfileId` and
-  `calendarDate` are required. The decoded JSON stays available as `raw`, for diagnostics.
+- Responses are parsed into frozen dataclasses (`DailySummary`, `UserSettings`, and one per
+  other endpoint, ADR-0025). Each metric is optional and becomes `None` when missing or of the
+  wrong type. The fields that identify a record, such as `calendarDate`, are required. The
+  decoded JSON stays available as `raw`, for diagnostics.
 - Typed with `py.typed`, checked with `mypy --strict` (needed for the integration's
   `strict-typing` rule).
 
