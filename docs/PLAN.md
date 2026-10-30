@@ -126,15 +126,21 @@ the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
 
 ### Phase 4: Documentation and brand (Bronze to Gold)
 
-1. Write the user documentation in the integration README, covering every `docs-*` rule in
-   `quality_scale.yaml`: description, installation (HACS and manual), setup parameters, removal,
-   data update interval, known limitations, troubleshooting, use cases, automation examples,
-   supported functions. Core needs the same content as a PR to `home-assistant.io` later.
-2. Check Garmin's brand guidelines for using the name and logo. Until then
-   `custom_components/garmin_connect_personal/brand/` holds a generic watch icon (`icon.png`,
-   `icon@2x.png`) drawn by `script/draw_placeholder_icon.py`, which satisfies the HACS brands
-   check. If Garmin allows its logo, replace the icon and add `logo.png` and the `dark_`
-   variants as needed. Core instead needs a PR to `home-assistant/brands`.
+1. Done 2026-10-30: the user documentation is in the integration README, covering every
+   `docs-*` rule in `quality_scale.yaml`. Core needs the same content as a PR to
+   `home-assistant.io` later, in its page format (`{% details %}` blocks, the config flow
+   include).
+2. Garmin's brand guidelines, checked 2026-10-30: the
+   [brand pages](https://developer.garmin.com/brand-guidelines/overview/) offer the Garmin
+   and Garmin Connect logos to licensees with a commercially available integration, and
+   downloading them means accepting Garmin's confidentiality agreement. A Personal API user
+   is not such a licensee, so the logo needs Garmin's written permission; ask through the
+   developer contact form before the core submission. The API brand guidelines PDF, which
+   covers attribution, could not be read here and still needs reading.
+   `custom_components/garmin_connect_personal/brand/` keeps the generic watch icon
+   (`icon.png`, `icon@2x.png`) drawn by `script/draw_placeholder_icon.py`, which satisfies
+   the HACS brands check. If Garmin allows its logo, replace the icon and add `logo.png` and
+   the `dark_` variants as needed. Core instead needs a PR to `home-assistant/brands`.
 
 **Done when:** every rule in `quality_scale.yaml` is `done` or `exempt`.
 
