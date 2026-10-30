@@ -6,11 +6,13 @@ from datetime import date, datetime, time, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any, override
 
 from aio_garmin_personal import (
+    DailySleep,
     DailySummary,
     GarminPersonalAuthenticationError,
     GarminPersonalClient,
     GarminPersonalError,
     GarminPersonalRateLimitError,
+    HrvSummary,
 )
 
 from homeassistant.core import HomeAssistant
@@ -18,7 +20,13 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, LOGGER, PREVIOUS_DAY_SETTLE_TIME, UPDATE_INTERVAL
+from .const import (
+    DOMAIN,
+    LOGGER,
+    PREVIOUS_DAY_SETTLE_TIME,
+    SLEEP_UPDATE_INTERVAL,
+    UPDATE_INTERVAL,
+)
 
 if TYPE_CHECKING:
     from . import GarminConnectPersonalConfigEntry
@@ -37,6 +45,25 @@ class GarminConnectPersonalData:
     previous_day: DailySummary | None = None
 
 
+@dataclass(frozen=True, kw_only=True)
+class GarminConnectPersonalSleepData:
+    """The most recent night: the one that ended today, or else the one before.
+
+    Each is `None` when Garmin has neither night.
+    """
+
+    sleep: DailySleep | None
+    hrv: HrvSummary | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class GarminConnectPersonalRuntimeData:
+    """The coordinators of a config entry."""
+
+    daily: GarminConnectPersonalCoordinator
+    sleep: GarminConnectPersonalSleepCoordinator
+
+
 async def async_garmin_time_zone(name: str | None) -> tzinfo | None:
     """Return the zone for a Garmin profile `timeZone` value, or `None` if unknown."""
     if not name:
@@ -44,10 +71,8 @@ async def async_garmin_time_zone(name: str | None) -> tzinfo | None:
     return await dt_util.async_get_time_zone("UTC" if name.lower() == "gmt" else name)
 
 
-class GarminConnectPersonalCoordinator(
-    DataUpdateCoordinator[GarminConnectPersonalData]
-):
-    """Poll the daily summary for the current day in the Garmin account's time zone."""
+class GarminConnectPersonalBaseCoordinator[_DataT](DataUpdateCoordinator[_DataT]):
+    """A coordinator that maps the library's errors to Home Assistant's."""
 
     config_entry: GarminConnectPersonalConfigEntry
 
@@ -56,16 +81,53 @@ class GarminConnectPersonalCoordinator(
         hass: HomeAssistant,
         entry: GarminConnectPersonalConfigEntry,
         client: GarminPersonalClient,
+        name: str,
+        update_interval: timedelta,
     ) -> None:
         """Initialize the coordinator."""
         super().__init__(
             hass,
             LOGGER,
             config_entry=entry,
-            name=DOMAIN,
-            update_interval=UPDATE_INTERVAL,
+            name=name,
+            update_interval=update_interval,
         )
         self.client = client
+
+    async def _async_call[T](self, request: Coroutine[Any, Any, T]) -> T:
+        try:
+            return await request
+        except GarminPersonalAuthenticationError as err:
+            raise ConfigEntryAuthFailed(
+                translation_domain=DOMAIN, translation_key="invalid_auth"
+            ) from err
+        except GarminPersonalRateLimitError as err:
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="rate_limited",
+                retry_after=err.retry_after,
+            ) from err
+        except GarminPersonalError as err:
+            raise UpdateFailed(
+                translation_domain=DOMAIN,
+                translation_key="update_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
+
+
+class GarminConnectPersonalCoordinator(
+    GarminConnectPersonalBaseCoordinator[GarminConnectPersonalData]
+):
+    """Poll the daily summary for the current day in the Garmin account's time zone."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: GarminConnectPersonalConfigEntry,
+        client: GarminPersonalClient,
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(hass, entry, client, DOMAIN, UPDATE_INTERVAL)
         self.time_zone: tzinfo = dt_util.get_default_time_zone()
         self._final_day: date | None = None
 
@@ -103,22 +165,39 @@ class GarminConnectPersonalCoordinator(
             self._final_day = yesterday
         return GarminConnectPersonalData(summary=summary, previous_day=previous_day)
 
-    async def _async_call[T](self, request: Coroutine[Any, Any, T]) -> T:
-        try:
-            return await request
-        except GarminPersonalAuthenticationError as err:
-            raise ConfigEntryAuthFailed(
-                translation_domain=DOMAIN, translation_key="invalid_auth"
-            ) from err
-        except GarminPersonalRateLimitError as err:
-            raise UpdateFailed(
-                translation_domain=DOMAIN,
-                translation_key="rate_limited",
-                retry_after=err.retry_after,
-            ) from err
-        except GarminPersonalError as err:
-            raise UpdateFailed(
-                translation_domain=DOMAIN,
-                translation_key="update_failed",
-                translation_placeholders={"error": str(err)},
-            ) from err
+
+class GarminConnectPersonalSleepCoordinator(
+    GarminConnectPersonalBaseCoordinator[GarminConnectPersonalSleepData]
+):
+    """Poll the most recent night's sleep and HRV.
+
+    They change only when the watch syncs, so the entry also requests a refresh whenever
+    the daily summary shows a new sync. The interval is a fallback for syncs that the
+    daily coordinator misses, for example while it is failing.
+    """
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: GarminConnectPersonalConfigEntry,
+        client: GarminPersonalClient,
+        time_zone: tzinfo,
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(hass, entry, client, f"{DOMAIN} sleep", SLEEP_UPDATE_INTERVAL)
+        self.time_zone = time_zone
+
+    @override
+    async def _async_update_data(self) -> GarminConnectPersonalSleepData:
+        """Fetch the night that ended today, or the night before until today's is there."""
+        today = dt_util.now(self.time_zone).date()
+        yesterday = today - timedelta(days=1)
+        sleep = await self._async_call(self.client.async_get_sleep(today))
+        if sleep is None:
+            sleep = await self._async_call(self.client.async_get_sleep(yesterday))
+        hrv = await self._async_call(self.client.async_get_hrv(today))
+        if hrv is None or hrv.summary is None:
+            hrv = await self._async_call(self.client.async_get_hrv(yesterday))
+        return GarminConnectPersonalSleepData(
+            sleep=sleep, hrv=hrv.summary if hrv is not None else None
+        )

@@ -419,3 +419,31 @@ one at a time (phase 5); the library does not wait for it.
   `/weight-service/weight/range/{startDate}/{endDate}` returns the same entries.
 
 The endpoints arrive in batches, one PR each, released together as 0.3.0.
+
+## ADR-0026: Sleep and HRV come from a second coordinator, refreshed after each sync
+
+**Status:** accepted, 2026-10-30
+
+Sleep and HRV are recorded once per night and reach Garmin only when the watch syncs. A
+second `DataUpdateCoordinator` fetches them, next to the daily one.
+
+- **A second coordinator, not more requests in the daily poll.** Once the entry is set up,
+  a failing sleep or HRV endpoint makes only those sensors unavailable; steps and calories
+  keep updating. Setup needs both first refreshes to succeed, so it is retried as a whole. A
+  rejected key still starts reauthentication from either coordinator, because both map the
+  library's errors the same way.
+- **Refreshed after each sync.** Polling sleep every 10 minutes would repeat two requests
+  that rarely change anything, and a long interval alone would show last night's sleep up
+  to that long after the morning sync. The daily summary's `lastSyncTimestampGMT` says when
+  the watch synced, so the entry requests a sleep refresh whenever it changes, and when the
+  calendar day changes. An hourly poll covers syncs the daily coordinator misses while it
+  is failing.
+- **The most recent night.** The sensors show the night that ended today, and until Garmin
+  has it, the night before. Showing nothing from midnight until the morning sync would
+  leave the sensors `unknown` for most of the night. Sleep and HRV fall back separately,
+  because a night can have one without the other.
+- **Diagnostics leave out the times of the night**, as they already left out
+  `bodyBatteryActivityEventList` for the times of sleep and exercise.
+- **Sensors:** sleep score and duration, HRV last night and status enabled; the four sleep
+  stages and the weekly HRV average disabled by default. The HRV status is an enum sensor
+  with the six statuses in Garmin's OpenAPI document.

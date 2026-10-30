@@ -149,8 +149,10 @@ so Home Assistant retries setup with backoff.
 
 ### Coordinator
 
-- One `DataUpdateCoordinator`, polling every 10 minutes (rule `appropriate-polling`; Garmin
-  publishes no limits, and watch syncs are minutes apart).
+- Two coordinators per entry, sharing one library client and its token (ADR-0026). The
+  daily coordinator polls the daily summary every 10 minutes (rule `appropriate-polling`;
+  Garmin publishes no limits, and watch syncs are minutes apart). The sleep coordinator
+  polls sleep and HRV, described below. Both map the library's errors the same way.
 - `_async_setup` reads the profile time zone once. `gmt` maps to UTC. An unknown zone name
   falls back to the Home Assistant time zone, with a warning.
 - Each poll requests the calendar day that is current in the Garmin time zone. Garmin assigns
@@ -162,6 +164,14 @@ so Home Assistant retries setup with backoff.
   day, and that sync uploads what the watch recorded late the day before. ADR-0023.
 - Data held: `GarminConnectPersonalData(summary: DailySummary | None, previous_day:
   DailySummary | None)`; `previous_day` is set only while the day before may still change.
+- The sleep coordinator fetches the night that ended today in the Garmin time zone, and the
+  night before when Garmin has nothing for today yet, separately for sleep and for HRV. An
+  HRV response without `hrvSummary` counts as no HRV. It refreshes whenever the daily
+  summary shows a new `lastSyncTimestampGMT` or a new calendar day, and every hour in any
+  case. Data held: `GarminConnectPersonalSleepData(sleep: DailySleep | None, hrv:
+  HrvSummary | None)`. Setup needs the first refresh of both coordinators to succeed;
+  after that, a failed sleep refresh makes only the sleep and HRV sensors unavailable.
+- `runtime_data` is `GarminConnectPersonalRuntimeData(daily, sleep)`.
 
 ### Device and entities
 
@@ -182,6 +192,23 @@ named after the entry title. Entities use `has_entity_name` and translated names
 | `average_stress` | `averageStressLevel` | – | – | measurement | disabled |
 | `body_battery` | `bodyBatteryMostRecentValue` | – | – | measurement | enabled |
 | `last_sync` | `lastSyncTimestampGMT` | – | timestamp | – | enabled, diagnostic |
+
+From the sleep coordinator, for the most recent night:
+
+| Key | Source field | Unit | Device class | State class | Default |
+|---|---|---|---|---|---|
+| `sleep_score` | sleep `sleepScores.overall.value` | – | – | measurement | enabled |
+| `sleep_duration` | sleep `sleepTimeSeconds` | s (shown in h) | duration | measurement | enabled |
+| `deep_sleep` | sleep `deepSleepSeconds` | s (shown in h) | duration | measurement | disabled |
+| `light_sleep` | sleep `lightSleepSeconds` | s (shown in h) | duration | measurement | disabled |
+| `rem_sleep` | sleep `remSleepSeconds` | s (shown in h) | duration | measurement | disabled |
+| `awake_time` | sleep `awakeSleepSeconds` | s (shown in h) | duration | measurement | disabled |
+| `hrv_last_night` | HRV `hrvSummary.lastNightAvg` | ms | – | measurement | enabled |
+| `hrv_weekly_average` | HRV `hrvSummary.weeklyAvg` | ms | – | measurement | disabled |
+| `hrv_status` | HRV `hrvSummary.status`, lowercased | – | enum | – | enabled |
+
+The HRV status options are the six values of the `status` enum in Garmin's OpenAPI document.
+Any other value leaves the sensor `unknown`, with a debug log entry.
 
 Daily totals use state class `total` with `last_reset` set to midnight of the summary's
 calendar day in the Garmin time zone. Long-term statistics start a new cycle whenever
@@ -217,6 +244,12 @@ The API key, `userProfileId`, `displayName`, `userDailySummaryId` and `uuid` are
 so is `bodyBatteryActivityEventList` as a whole: its entries carry the watch's `deviceId`, the
 activity IDs and names, and the times of sleep and exercise, and no sensor reads it. The raw
 daily summary is included otherwise, because it is what is needed to debug a wrong value.
+
+The raw sleep and HRV summary responses are included too, without the times the night
+started and ended or was scored (the `sleepStart…`, `sleepEnd…`, `autoSleep…`,
+`timestampGmt` and `createTimeStamp` fields, and the sleep `id`, which is the start time),
+the naps, the profile keys (`userProfilePK`, `userProfilePk`) and the watch's `deviceId`.
+Those are as personal as the activity times above, and no sensor reads them (ADR-0026).
 
 ### Translations
 

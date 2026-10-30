@@ -6,7 +6,13 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
-from aio_garmin_personal import Activity, DailySummary, UserSettings
+from aio_garmin_personal import (
+    Activity,
+    DailyHrv,
+    DailySleep,
+    DailySummary,
+    UserSettings,
+)
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -36,6 +42,18 @@ def daily_summary() -> DailySummary:
 
 
 @pytest.fixture
+def sleep() -> DailySleep:
+    """Return the fixture's night of sleep."""
+    return DailySleep.from_dict(load_json("sleep.json"))
+
+
+@pytest.fixture
+def hrv() -> DailyHrv:
+    """Return the fixture's night of HRV."""
+    return DailyHrv.from_dict(load_json("hrv.json"))
+
+
+@pytest.fixture
 def user_settings() -> UserSettings:
     """Return the fixture's profile settings."""
     return UserSettings.from_dict(load_json("user_settings.json"))
@@ -55,6 +73,8 @@ def mock_client(
     daily_summary: DailySummary,
     user_settings: UserSettings,
     activities: list[Activity],
+    sleep: DailySleep,
+    hrv: DailyHrv,
 ) -> Generator[AsyncMock]:
     """Replace the library client in both the integration and the config flow."""
     with (
@@ -71,6 +91,8 @@ def mock_client(
         client.async_get_user_settings.return_value = user_settings
         client.async_get_daily_summary.return_value = daily_summary
         client.async_get_activities.return_value = activities
+        client.async_get_sleep.return_value = sleep
+        client.async_get_hrv.return_value = hrv
         yield client
 
 
