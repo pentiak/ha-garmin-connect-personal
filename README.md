@@ -4,7 +4,8 @@ The **Garmin Connect Personal** integration connects Home Assistant to your
 [Garmin Connect](https://connect.garmin.com/) account through Garmin's official
 [Personal API](https://developer.garmin.com/gc-developer-program/personal/personal-api). Garmin
 Connect is where Garmin watches and fitness trackers store what they record: steps, calories,
-heart rate, stress, Body Battery and more. The integration reads your daily totals from it.
+heart rate, stress, Body Battery, sleep and more. The integration reads your daily totals
+and last night's sleep and heart rate variability (HRV) from it.
 
 It uses a Personal API key that you create in Garmin Connect. It does not use your Garmin
 password and does not need multi-factor authentication codes.
@@ -20,6 +21,7 @@ With the integration, those numbers are in Home Assistant:
   home.
 - Get a reminder in the evening when you have not reached your step goal.
 - Dim the lights or start a wind-down scene when your Body Battery is low.
+- Turn the morning lights on more gently after a short night or a low sleep score.
 - Keep a long-term history of your daily totals in Home Assistant's statistics, for example to
   compare weeks or months in a statistics graph card.
 
@@ -83,15 +85,35 @@ zone.
 | Body Battery | | The most recent Body Battery value, from 0 to 100. |
 | Last sync | | When the device last synced to Garmin Connect. Diagnostic. |
 
+These sensors describe the most recent night: the one that ended today, or, until your device
+has synced it, the night before.
+
+| Sensor | Unit | Description |
+|---|---|---|
+| Sleep score | | Garmin's sleep score for the night, from 0 to 100. |
+| Sleep duration | h | Time asleep during the night. |
+| Deep sleep | h | Time in deep sleep. Disabled by default. |
+| Light sleep | h | Time in light sleep. Disabled by default. |
+| REM sleep | h | Time in REM sleep. Disabled by default. |
+| Awake time | h | Time awake during the night. Disabled by default. |
+| HRV last night | ms | Average heart rate variability during the night. |
+| HRV weekly average | ms | Average of the nightly HRV over the last seven days. Disabled by default. |
+| HRV status | | Garmin's HRV status against your baseline: Balanced, Unbalanced, Low, Poor, No status or Invalid. |
+
 The daily totals (calories, steps, distance, floors and intensity minutes) are recorded in
 long-term statistics as one value per day. To enable a sensor that is disabled by default, open
 it in **Settings → Devices & services → Entities** and turn on **Enabled**.
 
 ## Data updates
 
-The integration polls Garmin every 10 minutes. Garmin only has new data after your device has
-synced to Garmin Connect, which the phone app does every so often in the background, so values
-can be behind by the time since the last sync. The **Last sync** sensor shows when that was.
+The integration polls Garmin's daily summary every 10 minutes. Garmin only has new data after
+your device has synced to Garmin Connect, which the phone app does every so often in the
+background, so values can be behind by the time since the last sync. The **Last sync** sensor
+shows when that was.
+
+Sleep and HRV are read again whenever the daily summary shows a new sync, and every hour in
+any case. Last night's values usually appear within 10 minutes of the first sync after you
+wake up.
 
 Some of what your device records late in the evening reaches Garmin only with the first sync
 after midnight, when the sensors already show the new day. For the day before, the integration
@@ -110,6 +132,8 @@ newer data, because the data only changes when your device syncs.
   than that, the statistics of the earlier days keep the values from before the sync.
 - Garmin does not report when a key expires. Home Assistant asks for a new key only after
   Garmin has rejected the old one.
+- The sleep and HRV sensors show the night before until your device has synced last night.
+  Their states do not say which night they belong to.
 - The Personal API is meant for individuals reading their own data. Each person needs their
   own key.
 
