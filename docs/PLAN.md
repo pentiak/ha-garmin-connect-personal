@@ -139,8 +139,8 @@ the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
      rules it out as the integration icon without Garmin's permission;
    - Garmin may review applications and suspend API access for noncompliance.
 
-   Home Assistant shows an entity's `attribution` in its more-info dialog, so the entities
-   should say "Data provided by Garmin". Dashboards built by the user are outside the
+   Home Assistant shows an entity's `attribution` in its more-info dialog; the entities say
+   "Data provided by Garmin". Dashboards built by the user are outside the
    integration's control. Whether the Personal API, meant for individuals, counts as an
    application under these rules is a question for Garmin, together with the logo.
    `custom_components/garmin_connect_personal/brand/` keeps the generic watch icon
