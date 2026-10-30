@@ -30,6 +30,33 @@
       },
       "last_sync": {
         "default": "mdi:sync"
+      },
+      "sleep_score": {
+        "default": "mdi:sleep"
+      },
+      "sleep_duration": {
+        "default": "mdi:sleep"
+      },
+      "deep_sleep": {
+        "default": "mdi:power-sleep"
+      },
+      "light_sleep": {
+        "default": "mdi:power-sleep"
+      },
+      "rem_sleep": {
+        "default": "mdi:power-sleep"
+      },
+      "awake_time": {
+        "default": "mdi:eye-outline"
+      },
+      "hrv_last_night": {
+        "default": "mdi:heart-pulse"
+      },
+      "hrv_weekly_average": {
+        "default": "mdi:heart-pulse"
+      },
+      "hrv_status": {
+        "default": "mdi:heart-cog"
       }
     }
   }

@@ -1,18 +1,22 @@
 """Base entity for Garmin Connect Personal."""
 
+from typing import Any
+
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import GarminConnectPersonalCoordinator
+from .coordinator import GarminConnectPersonalBaseCoordinator
 
 
-class GarminConnectPersonalEntity(CoordinatorEntity[GarminConnectPersonalCoordinator]):
+class GarminConnectPersonalEntity[
+    _CoordinatorT: GarminConnectPersonalBaseCoordinator[Any]
+](CoordinatorEntity[_CoordinatorT]):
     """An entity of the Garmin account, grouped under one service device."""
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: GarminConnectPersonalCoordinator, key: str) -> None:
+    def __init__(self, coordinator: _CoordinatorT, key: str) -> None:
         """Initialize the entity."""
         super().__init__(coordinator)
         account_id = coordinator.config_entry.unique_id

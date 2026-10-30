@@ -5,7 +5,8 @@
 Update this section at the end of every working session.
 
 - **Last updated:** 2026-10-30
-- **Current phase:** 3 (integration in a real Home Assistant, first HACS release)
+- **Current phase:** 3 (integration in a real Home Assistant, first HACS release), with
+  phases 4 and 5 in parallel
 - **State:** Phases 0 to 2 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
   repositories were recreated on 2026-10-23 with a single fresh commit each; ADR-0021
   records what they may contain. Both are public, and their settings match Repository
@@ -25,12 +26,16 @@ Update this section at the end of every working session.
     the recorder's daily statistics. On the last two days the watch synced part of the day
     only after midnight, so the states before midnight were short and the correction added
     the rest; the earlier days stayed unchanged.
+- **Phase 4:** the user documentation is in the README; the brand check found that the
+  Garmin logo needs Garmin's permission, so the placeholder icon stays.
 - **Phase 5, library side, done (ADR-0025):** aio-garmin-personal 0.3.0 is on PyPI and
-  covers every endpoint except `weight/all`. The integration still pins 0.2.1; it moves to
-  0.3.0 with the phase 5 sensors.
+  covers every endpoint except `weight/all`. **Integration side:** sleep and HRV sensors
+  from a second coordinator (ADR-0026), on aio-garmin-personal 0.3.0; tested with made-up
+  fixtures only so far.
 - **Next step:** keep `v0.1.0` running until 2026-11-06, a week after installing it
-  through HACS, which completes phase 3. Then phase 4 (documentation and brand) and the
-  integration side of phase 5: sensors from the new endpoints.
+  through HACS, which completes phase 3. Install the sleep and HRV sensors on the real
+  instance and compare a few mornings with the app before releasing them. Then ask Garmin
+  about the logo, and continue phase 5 with the next candidates.
 
 ## Phases
 
@@ -145,15 +150,13 @@ typed method, in batches released together as aio-garmin-personal 0.3.0.
 
 Integration side, after phase 3: each sensor needs the library release first. Candidates:
 
-- Sleep: `/sleep-service/sleep/dailySleep` (score, duration, stages).
-- HRV: `/hrv-service/hrv/{calendarDate}` (last night average, status).
+- Done 2026-10-30, ADR-0026: sleep (score, duration, stages) and HRV (last night
+  average, weekly average, status).
 - Body Battery details, SpO2, respiration: some are already in the daily summary.
 - Weight: `/weight-service/weight/range/{startDate}/{endDate}`.
 - Last activity: `/activitylist-service/activities/search/activities`.
 - History import into long-term statistics from `/usersummary-service/v2/dailysummaries`,
   as external statistics; the sensors' own statistics only cover the day before (ADR-0023).
-
-A second coordinator with a longer interval suits data that changes once a day (sleep, HRV).
 
 ### Phase 6: Submit to Home Assistant core
 

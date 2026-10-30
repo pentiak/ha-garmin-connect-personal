@@ -6,7 +6,7 @@ from datetime import date, datetime, time, timedelta
 import math
 from typing import override
 
-from aio_garmin_personal import DailySummary
+from aio_garmin_personal import DailySummary, HrvSummary
 
 from homeassistant.components.recorder.statistics import statistic_during_period
 from homeassistant.components.sensor import (
@@ -24,7 +24,11 @@ from homeassistant.util import dt as dt_util
 
 from . import GarminConnectPersonalConfigEntry
 from .const import LOGGER
-from .coordinator import GarminConnectPersonalCoordinator
+from .coordinator import (
+    GarminConnectPersonalCoordinator,
+    GarminConnectPersonalSleepCoordinator,
+    GarminConnectPersonalSleepData,
+)
 from .entity import GarminConnectPersonalEntity
 
 # The coordinator does all I/O.
@@ -136,19 +140,124 @@ SENSORS: tuple[GarminConnectPersonalSensorEntityDescription, ...] = (
 )
 
 
+@dataclass(frozen=True, kw_only=True)
+class GarminConnectPersonalSleepSensorEntityDescription(SensorEntityDescription):
+    """Describes a sensor read from the most recent night."""
+
+    value_fn: Callable[[GarminConnectPersonalSleepData], float | int | str | None]
+
+
+HRV_STATUSES = ["none", "poor", "low", "unbalanced", "balanced", "invalid"]
+
+
+def _hrv_status(hrv: HrvSummary | None) -> str | None:
+    """Return the HRV status as an option of the enum sensor, or `None` if unknown."""
+    if hrv is None or hrv.status is None:
+        return None
+    if (status := hrv.status.lower()) not in HRV_STATUSES:
+        LOGGER.debug("Unknown HRV status %s", hrv.status)
+        return None
+    return status
+
+
+def _sleep_duration(
+    key: str,
+    value_fn: Callable[[GarminConnectPersonalSleepData], int | None],
+    *,
+    enabled: bool = False,
+) -> GarminConnectPersonalSleepSensorEntityDescription:
+    """Describe a sleep duration, recorded in seconds and shown in hours."""
+    return GarminConnectPersonalSleepSensorEntityDescription(
+        key=key,
+        translation_key=key,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.HOURS,
+        suggested_display_precision=1,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=enabled,
+        value_fn=value_fn,
+    )
+
+
+SLEEP_SENSORS: tuple[GarminConnectPersonalSleepSensorEntityDescription, ...] = (
+    GarminConnectPersonalSleepSensorEntityDescription(
+        key="sleep_score",
+        translation_key="sleep_score",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.sleep.score if data.sleep else None,
+    ),
+    _sleep_duration(
+        "sleep_duration",
+        lambda data: data.sleep.sleep_seconds if data.sleep else None,
+        enabled=True,
+    ),
+    _sleep_duration(
+        "deep_sleep",
+        lambda data: data.sleep.deep_sleep_seconds if data.sleep else None,
+    ),
+    _sleep_duration(
+        "light_sleep",
+        lambda data: data.sleep.light_sleep_seconds if data.sleep else None,
+    ),
+    _sleep_duration(
+        "rem_sleep",
+        lambda data: data.sleep.rem_sleep_seconds if data.sleep else None,
+    ),
+    _sleep_duration(
+        "awake_time",
+        lambda data: data.sleep.awake_sleep_seconds if data.sleep else None,
+    ),
+    GarminConnectPersonalSleepSensorEntityDescription(
+        key="hrv_last_night",
+        translation_key="hrv_last_night",
+        native_unit_of_measurement=UnitOfTime.MILLISECONDS,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.hrv.last_night_average if data.hrv else None,
+    ),
+    GarminConnectPersonalSleepSensorEntityDescription(
+        key="hrv_weekly_average",
+        translation_key="hrv_weekly_average",
+        native_unit_of_measurement=UnitOfTime.MILLISECONDS,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda data: data.hrv.weekly_average if data.hrv else None,
+    ),
+    GarminConnectPersonalSleepSensorEntityDescription(
+        key="hrv_status",
+        translation_key="hrv_status",
+        device_class=SensorDeviceClass.ENUM,
+        options=HRV_STATUSES,
+        value_fn=lambda data: _hrv_status(data.hrv),
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: GarminConnectPersonalConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the sensors of a config entry."""
-    coordinator = entry.runtime_data
+    daily = entry.runtime_data.daily
+    sleep = entry.runtime_data.sleep
     async_add_entities(
-        GarminConnectPersonalSensor(coordinator, description) for description in SENSORS
+        [
+            *(
+                GarminConnectPersonalSensor(daily, description)
+                for description in SENSORS
+            ),
+            *(
+                GarminConnectPersonalSleepSensor(sleep, description)
+                for description in SLEEP_SENSORS
+            ),
+        ]
     )
 
 
-class GarminConnectPersonalSensor(GarminConnectPersonalEntity, SensorEntity):
+class GarminConnectPersonalSensor(
+    GarminConnectPersonalEntity[GarminConnectPersonalCoordinator], SensorEntity
+):
     """A value from the current day's summary."""
 
     entity_description: GarminConnectPersonalSensorEntityDescription
@@ -265,3 +374,25 @@ class GarminConnectPersonalSensor(GarminConnectPersonalEntity, SensorEntity):
         recorder.async_adjust_statistics(
             self.entity_id, last_hour, value - recorded, unit or ""
         )
+
+
+class GarminConnectPersonalSleepSensor(
+    GarminConnectPersonalEntity[GarminConnectPersonalSleepCoordinator], SensorEntity
+):
+    """A value from the most recent night's sleep or HRV."""
+
+    entity_description: GarminConnectPersonalSleepSensorEntityDescription
+
+    def __init__(
+        self,
+        coordinator: GarminConnectPersonalSleepCoordinator,
+        description: GarminConnectPersonalSleepSensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, description.key)
+        self.entity_description = description
+
+    @property
+    def native_value(self) -> float | int | str | None:
+        """Return the value for the most recent night, or `None` without one."""
+        return self.entity_description.value_fn(self.coordinator.data)
