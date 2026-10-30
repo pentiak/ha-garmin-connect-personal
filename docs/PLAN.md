@@ -33,9 +33,10 @@ Update this section at the end of every working session.
   from a second coordinator (ADR-0026), on aio-garmin-personal 0.3.0; tested with made-up
   fixtures only so far.
 - **Next step:** keep `v0.1.0` running until 2026-11-06, a week after installing it
-  through HACS, which completes phase 3. Install the sleep and HRV sensors on the real
-  instance and compare a few mornings with the app before releasing them. Then ask Garmin
-  about the logo, and continue phase 5 with the next candidates.
+  through HACS, which completes phase 3. The sleep and HRV sensors wait on `master` until
+  then; after that, install them on the real instance and compare a few mornings with the
+  app before releasing them. Ask Garmin about the logo, and continue phase 5 with the next
+  candidates.
 
 ## Phases
 

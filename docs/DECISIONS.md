@@ -427,8 +427,9 @@ The endpoints arrive in batches, one PR each, released together as 0.3.0.
 Sleep and HRV are recorded once per night and reach Garmin only when the watch syncs. A
 second `DataUpdateCoordinator` fetches them, next to the daily one.
 
-- **A second coordinator, not more requests in the daily poll.** A failing sleep or HRV
-  endpoint makes only those sensors unavailable; steps and calories keep updating. A
+- **A second coordinator, not more requests in the daily poll.** Once the entry is set up,
+  a failing sleep or HRV endpoint makes only those sensors unavailable; steps and calories
+  keep updating. Setup needs both first refreshes to succeed, so it is retried as a whole. A
   rejected key still starts reauthentication from either coordinator, because both map the
   library's errors the same way.
 - **Refreshed after each sync.** Polling sleep every 10 minutes would repeat two requests

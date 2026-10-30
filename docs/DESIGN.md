@@ -169,7 +169,8 @@ so Home Assistant retries setup with backoff.
   HRV response without `hrvSummary` counts as no HRV. It refreshes whenever the daily
   summary shows a new `lastSyncTimestampGMT` or a new calendar day, and every hour in any
   case. Data held: `GarminConnectPersonalSleepData(sleep: DailySleep | None, hrv:
-  HrvSummary | None)`. Its failures make only the sleep and HRV sensors unavailable.
+  HrvSummary | None)`. Setup needs the first refresh of both coordinators to succeed;
+  after that, a failed sleep refresh makes only the sleep and HRV sensors unavailable.
 - `runtime_data` is `GarminConnectPersonalRuntimeData(daily, sleep)`.
 
 ### Device and entities
