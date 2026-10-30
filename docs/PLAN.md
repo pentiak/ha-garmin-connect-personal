@@ -4,7 +4,7 @@
 
 Update this section at the end of every working session.
 
-- **Last updated:** 2026-10-29
+- **Last updated:** 2026-10-30
 - **Current phase:** 3 (integration in a real Home Assistant, first HACS release)
 - **State:** Phases 0 to 2 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
   repositories were recreated on 2026-10-23 with a single fresh commit each; ADR-0021
@@ -21,15 +21,14 @@ Update this section at the end of every working session.
     entering a new key brings the entry back. Before 0.2.1 the token endpoint's 404 for a
     deleted key was reported as a temporary failure and no reauth started;
   - reconfigure with a new key for the same account works;
-  - the totals for 2026-10-27 match Garmin's API exactly;
-  - the totals for 2026-10-28 match Garmin's API exactly in the recorder's daily
-    statistics. The watch synced part of the day only after midnight, so the states before
-    midnight were short and the correction added the rest; 2026-10-27 stayed unchanged.
+  - the totals for 2026-10-27, 2026-10-28 and 2026-10-29 match Garmin's API exactly in
+    the recorder's daily statistics. On the last two days the watch synced part of the day
+    only after midnight, so the states before midnight were short and the correction added
+    the rest; the earlier days stayed unchanged.
 - **Phase 5, library side, done (ADR-0025):** aio-garmin-personal 0.3.0 is on PyPI and
   covers every endpoint except `weight/all`. The integration still pins 0.2.1; it moves to
   0.3.0 with the phase 5 sensors.
-- **Next step:** run it for a few more nights and compare yesterday's totals with the app
-  each morning; then the release PR for `v0.1.0`, which dates the `CHANGELOG.md` entry. On
+- **Next step:** the release PR for `v0.1.0`, which dates the `CHANGELOG.md` entry. On
   phase 5, the integration side: sensors from the new endpoints.
 
 ## Phases
