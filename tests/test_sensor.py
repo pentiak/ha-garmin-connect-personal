@@ -166,3 +166,15 @@ async def test_entities_share_one_service_device(
         f"{ACCOUNT_ID}_total_calories",
         f"{ACCOUNT_ID}_active_calories",
     }
+
+
+async def test_sensors_attribute_garmin(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    """Test that the sensors name Garmin as the data source."""
+    await _setup(hass, mock_config_entry)
+
+    sensor = hass.states.get("sensor.garmin_connect_steps")
+
+    assert sensor is not None
+    assert sensor.attributes["attribution"] == "Data provided by Garmin"

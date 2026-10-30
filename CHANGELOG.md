@@ -7,6 +7,8 @@
 - Sensors for the most recent night: sleep score, sleep duration, HRV last night and HRV
   status, and, disabled by default, deep, light and REM sleep, awake time and the weekly HRV
   average. They update after each watch sync.
+- The sensors name Garmin as their data source ("Data provided by Garmin"), as Garmin's API
+  brand guidelines require.
 
 ### Changed
 
