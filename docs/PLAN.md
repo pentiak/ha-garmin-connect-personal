@@ -12,9 +12,9 @@ Update this section at the end of every working session.
   settings below. aio-garmin-personal 0.2.1 is on PyPI, published by `release.yml` through
   trusted publishing. Both repositories release from a tag (ADR-0024).
 - **Phase 3 step 3 in progress:** the integration has run on a real instance with two
-  accounts since 2026-10-23, installed through HACS from `master` since 2026-10-27. Daily
-  totals reset at Garmin's midnight, including the DST change on 2026-10-25. Checked on the
-  instance:
+  accounts since 2026-10-23, installed through HACS from `master` from 2026-10-27, and from
+  the `v0.1.0` release since 2026-10-30. Daily totals reset at Garmin's midnight, including
+  the DST change on 2026-10-25. Checked on the instance:
   - the day before is corrected after a late sync (ADR-0023): the corrected totals for
     2026-10-26 match the Garmin Connect app, and later days were unchanged;
   - deleting the key in Garmin Connect starts reauthentication at the next poll, and
@@ -28,8 +28,9 @@ Update this section at the end of every working session.
 - **Phase 5, library side, done (ADR-0025):** aio-garmin-personal 0.3.0 is on PyPI and
   covers every endpoint except `weight/all`. The integration still pins 0.2.1; it moves to
   0.3.0 with the phase 5 sensors.
-- **Next step:** the release PR for `v0.1.0`, which dates the `CHANGELOG.md` entry. On
-  phase 5, the integration side: sensors from the new endpoints.
+- **Next step:** keep `v0.1.0` running until 2026-11-06, a week after installing it
+  through HACS, which completes phase 3. Then phase 4 (documentation and brand) and the
+  integration side of phase 5: sensors from the new endpoints.
 
 ## Phases
 
@@ -112,9 +113,8 @@ the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
    - an expired or deleted key leads to the reauth notification, and a new key fixes it
      (deleted key checked 2026-10-28);
    - reconfigure works with a new key for the same account (checked 2026-10-27).
-4. Release `v0.1.0` of the integration: a release PR dates the `CHANGELOG.md` entry, then
-   tag the merge commit `v0.1.0`; `release.yml` creates the GitHub release (ADR-0024). HACS
-   installs from releases.
+4. Done 2026-10-30: `v0.1.0` released (ADR-0024) and installed through HACS on the real
+   instance.
 
 **Done when:** installed through HACS on a real instance and stable for a week.
 
