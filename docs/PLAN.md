@@ -13,8 +13,9 @@ Update this section at the end of every working session.
   settings below. aio-garmin-personal 0.2.1 is on PyPI, published by `release.yml` through
   trusted publishing. Both repositories release from a tag (ADR-0024).
 - **Phase 3 step 3 in progress:** the integration has run on a real instance with two
-  accounts since 2026-10-23, installed through HACS from `master` from 2026-10-27, and from
-  the `v0.1.0` release since 2026-10-30. Daily totals reset at Garmin's midnight, including
+  accounts since 2026-10-23, installed through HACS from `master` from 2026-10-27, from the
+  `v0.1.0` release on 2026-10-30, and from `master` again (with the sleep and HRV sensors)
+  since later that day. Daily totals reset at Garmin's midnight, including
   the DST change on 2026-10-25. Checked on the instance:
   - the day before is corrected after a late sync (ADR-0023): the corrected totals for
     2026-10-26 match the Garmin Connect app, and later days were unchanged;
@@ -33,12 +34,14 @@ Update this section at the end of every working session.
   from a second coordinator (ADR-0026), on aio-garmin-personal 0.3.0; tested with made-up
   fixtures, and on 2026-10-30 the library read today's and yesterday's sleep and HRV from
   the real API: every field the sensors use was present, and the HRV status was one of
-  the six enum values.
-- **Next step:** keep `v0.1.0` running until 2026-11-06, a week after installing it
-  through HACS, which completes phase 3. The sleep and HRV sensors wait on `master` until
-  then; after that, install them on the real instance and compare a few mornings with the
-  app before releasing them. Ask Garmin about the logo, and continue phase 5 with the next
-  candidates.
+  the six enum values. On the instance, both accounts' sensors showed the same values as
+  the API on the first refresh. Home Assistant now puts the device's area into the entity
+  IDs of newly created entities, so the new sensors came up as `sensor.system_…` on a device
+  in an area called "System"; renaming them in the entity registry keeps their history.
+- **Next step:** keep `master` running until 2026-11-06, a week from installing the sleep
+  and HRV sensors, which completes phase 3. Compare a few mornings' sleep and HRV with the
+  app, then release `v0.2.0`. Garmin was asked about the logo, the attribution and the name
+  on 2026-10-30; wait for the reply. Continue phase 5 with the next candidates.
 
 ## Phases
 
