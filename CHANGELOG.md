@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- The sensors name Garmin as their data source ("Data provided by Garmin"), as Garmin's API
+  brand guidelines require.
+
 ## 0.1.0 - 2026-10-30
 
 ### Added

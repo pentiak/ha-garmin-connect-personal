@@ -10,6 +10,8 @@ from .coordinator import GarminConnectPersonalCoordinator
 class GarminConnectPersonalEntity(CoordinatorEntity[GarminConnectPersonalCoordinator]):
     """An entity of the Garmin account, grouped under one service device."""
 
+    # Garmin's API brand guidelines require every view of its data to name Garmin.
+    _attr_attribution = "Data provided by Garmin"
     _attr_has_entity_name = True
 
     def __init__(self, coordinator: GarminConnectPersonalCoordinator, key: str) -> None:

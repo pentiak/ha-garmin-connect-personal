@@ -129,8 +129,20 @@ the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
    and Garmin Connect logos to licensees with a commercially available integration, and
    downloading them means accepting Garmin's confidentiality agreement. A Personal API user
    is not such a licensee, so the logo needs Garmin's written permission; ask through the
-   developer contact form before the core submission. The API brand guidelines PDF, which
-   covers attribution, could not be read here and still needs reading.
+   developer contact form before the core submission. The
+   [API brand guidelines](https://developer.garmin.com/downloads/brand/Garmin-Developer-API-Brand-Guidelines.pdf)
+   (version 6.30.2025) apply to every Garmin developer program and say:
+   - every view of Garmin device-sourced data, summary or detailed, must carry a "Garmin
+     [device model]" attribution next to its title, or "Garmin" when the API does not
+     give the model. Exports, combined data and shared images need it too;
+   - the Garmin tag logo must not be used in avatars, badges or unrelated imagery, which
+     rules it out as the integration icon without Garmin's permission;
+   - Garmin may review applications and suspend API access for noncompliance.
+
+   Home Assistant shows an entity's `attribution` in its more-info dialog; the entities say
+   "Data provided by Garmin". Dashboards built by the user are outside the
+   integration's control. Whether the Personal API, meant for individuals, counts as an
+   application under these rules is a question for Garmin, together with the logo.
    `custom_components/garmin_connect_personal/brand/` keeps the generic watch icon
    (`icon.png`, `icon@2x.png`) drawn by `script/draw_placeholder_icon.py`, which satisfies
    the HACS brands check. If Garmin allows its logo, replace the icon and add `logo.png` and
