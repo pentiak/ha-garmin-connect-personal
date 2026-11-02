@@ -4,7 +4,7 @@
 
 Update this section at the end of every working session.
 
-- **Last updated:** 2026-10-30
+- **Last updated:** 2026-11-02
 - **Current phase:** 3 (integration in a real Home Assistant, first HACS release), with
   phases 4 and 5 in parallel
 - **State:** Phases 0 to 2 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
@@ -26,9 +26,14 @@ Update this section at the end of every working session.
   - the totals for 2026-10-27, 2026-10-28 and 2026-10-29 match Garmin's API exactly in
     the recorder's daily statistics. On the last two days the watch synced part of the day
     only after midnight, so the states before midnight were short and the correction added
-    the rest; the earlier days stayed unchanged.
+    the rest; the earlier days stayed unchanged. 2026-10-31 and 2026-11-01 match too;
+  - 2026-10-30 is short: Garmin added to that day after the first sync of the next day,
+    when the integration had stopped fetching it. #19 fetches the day before hourly until
+    midnight, which catches that.
 - **Phase 4:** the user documentation is in the README; the brand check found that the
-  Garmin logo needs Garmin's permission, so the placeholder icon stays.
+  Garmin logo needs Garmin's permission, so the placeholder icon stays. Garmin's developer
+  support answers registered licensees only, so the questions about the logo, the
+  attribution and the name went to Garmin customer support instead.
 - **Phase 5, library side, done (ADR-0025):** aio-garmin-personal 0.3.0 is on PyPI and
   covers every endpoint except `weight/all`. **Integration side:** sleep and HRV sensors
   from a second coordinator (ADR-0026), on aio-garmin-personal 0.3.0; tested with made-up
@@ -40,8 +45,9 @@ Update this section at the end of every working session.
   in an area called "System"; renaming them in the entity registry keeps their history.
 - **Next step:** keep `master` running until 2026-11-06, a week from installing the sleep
   and HRV sensors, which completes phase 3. Compare a few mornings' sleep and HRV with the
-  app, then release `v0.2.0`. Garmin was asked about the logo, the attribution and the name
-  on 2026-10-30; wait for the reply. Continue phase 5 with the next candidates.
+  app. Once #19 is merged, install `master` again and check that a day's statistics still
+  match Garmin when something reaches Garmin late; then release `v0.2.0`. Wait for customer
+  support's reply about the logo. Continue phase 5 with the next candidates.
 
 ## Phases
 
