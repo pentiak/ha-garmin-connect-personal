@@ -14,6 +14,12 @@
 
 - Requires aio-garmin-personal 0.3.0.
 
+### Fixed
+
+- Data that reaches Garmin for the day before after the first sync of the new day, such as an
+  activity from another device, is now added to that day's statistics. The day before is
+  checked again every hour until midnight.
+
 ## 0.1.0 - 2026-10-30
 
 ### Added
