@@ -77,11 +77,16 @@ async def _change(hass: HomeAssistant, statistic_id: str, start: datetime) -> An
     return result["change"]
 
 
+async def _settle(hass: HomeAssistant) -> None:
+    """Wait for the corrections, which run as background tasks, and their recorder jobs."""
+    await hass.async_block_till_done(wait_background_tasks=True)
+    await async_wait_recording_done(hass)
+
+
 async def _poll(hass: HomeAssistant, freezer: FrozenDateTimeFactory, at: str) -> None:
     freezer.move_to(at)
     async_fire_time_changed(hass)
-    await hass.async_block_till_done()
-    await async_wait_recording_done(hass)
+    await _settle(hass)
 
 
 async def _compile(
@@ -120,7 +125,7 @@ async def test_late_sync_corrects_the_day_before(
     freezer.move_to("2026-10-23T20:30:00+00:00")
     mock_config_entry.add_to_hass(hass)
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await async_wait_recording_done(hass)
+    await _settle(hass)
 
     # The last sync before midnight.
     garmin_days.days[DAY_BEFORE] = _summary(DAY_BEFORE, 1200, 1100)
@@ -184,7 +189,7 @@ async def test_correction_is_not_repeated_after_a_reload(
     await _poll(hass, freezer, "2026-10-23T22:20:00+00:00")
     await _poll(hass, freezer, "2026-10-23T22:30:00+00:00")
     await hass.config_entries.async_reload(mock_config_entry.entry_id)
-    await async_wait_recording_done(hass)
+    await _settle(hass)
     await _poll(hass, freezer, "2026-10-23T22:40:00+00:00")
 
     assert garmin_days.requests.count(DAY_BEFORE) >= 4
@@ -219,7 +224,6 @@ async def test_day_before_is_corrected_when_set_up_after_midnight(
     garmin_days.days[date(2026, 10, 24)] = _summary(date(2026, 10, 24), 50, 40)
     freezer.move_to("2026-10-23T22:20:00+00:00")
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
-    await async_wait_recording_done(hass)
+    await _settle(hass)
 
     assert await _change(hass, STEPS, DAY_BEFORE_START) == 1500
