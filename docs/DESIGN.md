@@ -158,12 +158,14 @@ so Home Assistant retries setup with backoff.
 - Each poll requests the calendar day that is current in the Garmin time zone. Garmin assigns
   data to days in that zone; using Home Assistant's zone would request the wrong day for a user
   travelling or with a mismatched Home Assistant setting.
-- Until the day before is final, each poll also requests it: from 15 minutes after midnight
-  (time for the recorder to compile the day's last hour) until the first poll whose summary
-  for today has a `lastSyncTimestampGMT`. That field is null until the first sync of the new
-  day, and that sync uploads what the watch recorded late the day before. ADR-0023.
+- The day before is requested too, from 15 minutes after midnight (time for the recorder to
+  compile the day's last hour): on every poll until the first poll whose summary for today
+  has a `lastSyncTimestampGMT`, then hourly until the next midnight. That field is null until
+  the first sync of the new day, and that sync uploads what the watch recorded late the day
+  before. Garmin can still add to the day before later, from another sync, a second device
+  or a manual entry, which the hourly requests catch. ADR-0023.
 - Data held: `GarminConnectPersonalData(summary: DailySummary | None, previous_day:
-  DailySummary | None)`; `previous_day` is set only while the day before may still change.
+  DailySummary | None)`; `previous_day` is set only on the polls that requested it.
 - The sleep coordinator fetches the night that ended today in the Garmin time zone, and the
   night before when Garmin has nothing for today yet, separately for sleep and for HRV. An
   HRV response without `hrvSummary` counts as no HRV. It refreshes whenever the daily

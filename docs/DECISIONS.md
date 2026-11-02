@@ -78,7 +78,8 @@ start, so the core submission is a copy rather than a rewrite:
 
 All current sensors come from `GET /usersummary-service/usersummary/daily`, one request per
 poll, one coordinator. After midnight a second request per poll fetches the day before until
-it is final (ADR-0023). Garmin publishes no rate limits. Ten minutes keeps the daily request
+the first sync of the new day, then hourly until the next midnight (ADR-0023). Garmin
+publishes no rate limits. Ten minutes keeps the daily request
 count at 144 and is short compared with how often watches sync. The interval is a constant,
 not an option, following core practice; check core's current policy before adding an option.
 
@@ -341,8 +342,8 @@ before midnight. Steps, distance and calories recorded later that evening reach 
 first sync after midnight, when the sensors already show the new day, so Home Assistant never
 records them.
 
-After midnight the coordinator also fetches the day before, until today's summary has a last
-sync time (DESIGN.md, Coordinator). Each daily-total sensor then compares Garmin's total with
+After midnight the coordinator also fetches the day before: on every poll until today's
+summary has a last sync time, then hourly until the next midnight (DESIGN.md, Coordinator). Each daily-total sensor then compares Garmin's total with
 the change the recorder holds for that day, and adds the difference to its own statistic with
 `Recorder.async_adjust_statistics`, from the day's last hour on. The same operation backs
 "Adjust a statistic" in the developer tools: it adds the amount to the `sum` of every row from
@@ -356,6 +357,14 @@ Alternatives:
   import history from before the entry existed (PLAN.md, phase 5).
 - **Keeping yesterday's state until the first sync** would put the late data into the
   statistics, but in the hour of the sync, so on the wrong day.
+
+The hourly fetches were added on 2026-11-02. At first the day before was fetched only until
+the first sync of the new day, on the assumption that Garmin's total was final by then. On
+the real instance, Garmin's total for one day grew again after that sync, and that day's
+statistics stayed short. A later sync, a second device or a manual
+entry can add to the day before at any time. Fetching it hourly for the rest of the day costs
+24 requests a day; the correction adds only the difference to what the recorder holds, so
+repeating it never counts anything twice.
 
 No core integration calls `async_adjust_statistics` today; only the recorder's WebSocket API
 does. Expect to explain this in the core review, and fall back to external statistics if

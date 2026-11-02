@@ -23,6 +23,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     LOGGER,
+    PREVIOUS_DAY_RECHECK_INTERVAL,
     PREVIOUS_DAY_SETTLE_TIME,
     SLEEP_UPDATE_INTERVAL,
     UPDATE_INTERVAL,
@@ -129,7 +130,8 @@ class GarminConnectPersonalCoordinator(
         """Initialize the coordinator."""
         super().__init__(hass, entry, client, DOMAIN, UPDATE_INTERVAL)
         self.time_zone: tzinfo = dt_util.get_default_time_zone()
-        self._final_day: date | None = None
+        self._new_day_synced: date | None = None
+        self._previous_day_fetched: datetime | None = None
 
     @override
     async def _async_setup(self) -> None:
@@ -145,24 +147,31 @@ class GarminConnectPersonalCoordinator(
 
     @override
     async def _async_update_data(self) -> GarminConnectPersonalData:
-        """Fetch the summary of the current day, and of the day before until it is final.
+        """Fetch the summary of the current day, and of the day before until midnight.
 
         The first sync after midnight uploads what the watch recorded late the day
         before. Today's summary has a last sync time only once that sync has happened, so
-        the day before is fetched on every poll until then, and once more after it.
+        the day before is fetched on every poll until then. Garmin can still add to the
+        day before after that, from a later sync, another device or a manual entry, so it
+        is fetched hourly for the rest of the day.
         """
         now = dt_util.now(self.time_zone)
         today = now.date()
         summary = await self._async_call(self.client.async_get_daily_summary(today))
         yesterday = today - timedelta(days=1)
         midnight = datetime.combine(today, time.min, tzinfo=self.time_zone)
-        if self._final_day == yesterday or now - midnight < PREVIOUS_DAY_SETTLE_TIME:
+        if now - midnight < PREVIOUS_DAY_SETTLE_TIME or (
+            self._new_day_synced == yesterday
+            and self._previous_day_fetched is not None
+            and now - self._previous_day_fetched < PREVIOUS_DAY_RECHECK_INTERVAL
+        ):
             return GarminConnectPersonalData(summary=summary)
         previous_day = await self._async_call(
             self.client.async_get_daily_summary(yesterday)
         )
+        self._previous_day_fetched = now
         if summary is not None and summary.last_sync is not None:
-            self._final_day = yesterday
+            self._new_day_synced = yesterday
         return GarminConnectPersonalData(summary=summary, previous_day=previous_day)
 
 

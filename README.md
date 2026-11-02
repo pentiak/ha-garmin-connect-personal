@@ -118,7 +118,8 @@ wake up.
 Some of what your device records late in the evening reaches Garmin only with the first sync
 after midnight, when the sensors already show the new day. For the day before, the integration
 then adds that data to the long-term statistics, so the daily totals there match Garmin
-Connect.
+Connect. It checks the day before again every hour until midnight, so an activity from
+another device or one you add by hand that day is counted too.
 
 Garmin publishes no request limits for the Personal API. Polling more often would not give you
 newer data, because the data only changes when your device syncs.
@@ -129,7 +130,8 @@ newer data, because the data only changes when your device syncs.
   long-term statistics recorded while the integration was running; history from before you
   installed it is not imported.
 - Only the day before is corrected after a late sync. If your device does not sync for longer
-  than that, the statistics of the earlier days keep the values from before the sync.
+  than that, or you add an activity to an earlier day, the statistics of the earlier days keep
+  the values from before.
 - Garmin does not report when a key expires. Home Assistant asks for a new key only after
   Garmin has rejected the old one.
 - The sleep and HRV sensors show the night before until your device has synced last night.

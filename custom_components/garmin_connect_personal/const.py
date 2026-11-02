@@ -13,5 +13,6 @@ SLEEP_UPDATE_INTERVAL: Final = timedelta(hours=1)
 # Wait after midnight before reading the recorder's total for the day before, so that it
 # has compiled the day's last hour.
 PREVIOUS_DAY_SETTLE_TIME: Final = timedelta(minutes=15)
+PREVIOUS_DAY_RECHECK_INTERVAL: Final = timedelta(hours=1)
 
 DEFAULT_TITLE: Final = "Garmin Connect"

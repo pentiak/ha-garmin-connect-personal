@@ -147,10 +147,56 @@ async def test_late_sync_corrects_the_day_before(
     assert await _change(hass, STEPS, MIDNIGHT) == 50
     assert await _change(hass, DISTANCE, MIDNIGHT) == pytest.approx(0.04)
 
-    # Today has synced, so the day before is final and no longer requested.
+    # Today has synced, so the day before is requested only hourly from now on.
     garmin_days.requests.clear()
     await _poll(hass, freezer, "2026-10-23T22:30:00+00:00")
     assert garmin_days.requests == [date(2026, 10, 24)]
+
+
+async def test_later_change_to_the_day_before_is_added(
+    hass: HomeAssistant,
+    garmin_days: FakeGarminDays,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test that Garmin adding to the day before after the first sync still counts."""
+    garmin_days.days[date(2026, 10, 22)] = _summary(date(2026, 10, 22), None, None)
+    garmin_days.days[DAY_BEFORE] = _summary(DAY_BEFORE, 1000, 800)
+    freezer.move_to("2026-10-23T20:30:00+00:00")
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    garmin_days.days[DAY_BEFORE] = _summary(DAY_BEFORE, 1200, 1100)
+    await _poll(hass, freezer, "2026-10-23T21:40:00+00:00")
+    await _compile(
+        hass,
+        freezer,
+        "2026-10-23T20:30:00+00:00",
+        "2026-10-23T20:55:00+00:00",
+        "2026-10-23T21:40:00+00:00",
+        "2026-10-23T21:55:00+00:00",
+    )
+    garmin_days.days[DAY_BEFORE] = _summary(DAY_BEFORE, 1500, 1400)
+    garmin_days.days[date(2026, 10, 24)] = _summary(date(2026, 10, 24), 50, 40)
+    await _poll(hass, freezer, "2026-10-23T22:20:00+00:00")
+    await _compile(hass, freezer, "2026-10-23T22:20:00+00:00")
+    assert await _change(hass, STEPS, MIDNIGHT) == 50
+
+    # An activity from another device reaches Garmin later in the morning.
+    garmin_days.days[DAY_BEFORE] = _summary(DAY_BEFORE, 1800, 1900)
+    await _poll(hass, freezer, "2026-10-23T23:10:00+00:00")
+    assert await _change(hass, STEPS, DAY_BEFORE_START) == 1500
+
+    await _poll(hass, freezer, "2026-10-23T23:20:00+00:00")
+    assert await _change(hass, STEPS, DAY_BEFORE_START) == 1800
+    assert await _change(hass, DISTANCE, DAY_BEFORE_START) == pytest.approx(1.9)
+    await _compile(hass, freezer, "2026-10-23T22:55:00+00:00")
+    assert await _change(hass, STEPS, MIDNIGHT) == 50
+
+    # The next day, the day before is the new day; the old one is no longer requested.
+    garmin_days.days[date(2026, 10, 25)] = _summary(date(2026, 10, 25), 0, 0)
+    garmin_days.requests.clear()
+    await _poll(hass, freezer, "2026-10-24T22:20:00+00:00")
+    assert DAY_BEFORE not in garmin_days.requests
 
 
 async def test_correction_is_not_repeated_after_a_reload(
