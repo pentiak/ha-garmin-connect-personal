@@ -19,6 +19,9 @@
 - Data that reaches Garmin for the day before after the first sync of the new day, such as an
   activity from another device, is now added to that day's statistics. The day before is
   checked again every hour until midnight.
+- A day on which the device could not sync before midnight, for example because the watch did
+  not reach the phone, now gets its total once the device syncs. Before, that day stayed at
+  zero in the statistics, and the first hour of the next day was counted twice.
 
 ## 0.1.0 - 2026-10-30
 
