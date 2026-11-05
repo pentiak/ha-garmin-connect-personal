@@ -17,7 +17,7 @@ from pytest_homeassistant_custom_component.components.recorder.common import (
 )
 
 from homeassistant.components.recorder import Recorder
-from homeassistant.components.recorder.statistics import statistic_during_period
+from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.recorder import get_instance
 from homeassistant.util import dt as dt_util
@@ -64,17 +64,22 @@ class FakeGarminDays:
 
 
 async def _change(hass: HomeAssistant, statistic_id: str, start: datetime) -> Any:
-    """Return the change of a statistic over the Garmin day that starts at `start`."""
+    """Return the change of a statistic over the Garmin day that starts at `start`.
+
+    Added up from the 5-minute statistics, whose change the recorder takes against the
+    last row before each one, as the energy dashboard does.
+    """
     result = await get_instance(hass).async_add_executor_job(
-        statistic_during_period,
+        statistics_during_period,
         hass,
         start,
         start + timedelta(days=1),
-        statistic_id,
-        {"change"},
+        {statistic_id},
+        "5minute",
         None,
+        {"change"},
     )
-    return result["change"]
+    return sum(row["change"] for row in result[statistic_id])
 
 
 async def _settle(hass: HomeAssistant) -> None:
@@ -272,4 +277,64 @@ async def test_day_before_is_corrected_when_set_up_after_midnight(
     await hass.config_entries.async_setup(mock_config_entry.entry_id)
     await _settle(hass)
 
+    assert await _change(hass, STEPS, DAY_BEFORE_START) == 1500
+
+
+async def test_day_without_values_in_its_last_hour_is_corrected(
+    hass: HomeAssistant,
+    garmin_days: FakeGarminDays,
+    mock_config_entry: MockConfigEntry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test that a day is corrected when the sensor had no value in its last hour."""
+    garmin_days.days[date(2026, 10, 22)] = _summary(date(2026, 10, 22), None, None)
+    garmin_days.days[DAY_BEFORE] = _summary(DAY_BEFORE, 1000, 800)
+    freezer.move_to("2026-10-23T19:30:00+00:00")
+    mock_config_entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await _settle(hass)
+    garmin_days.days[DAY_BEFORE] = _summary(DAY_BEFORE, 1200, 1100)
+    await _poll(hass, freezer, "2026-10-23T20:10:00+00:00")
+
+    # The watch stops reaching the phone: the sensor has no value from 22:40 local time
+    # on, so the recorder writes no row for the day's last hour.
+    garmin_days.days[DAY_BEFORE] = _summary(DAY_BEFORE, None, None)
+    garmin_days.days[date(2026, 10, 24)] = _summary(
+        date(2026, 10, 24), None, None, synced=False
+    )
+    await _poll(hass, freezer, "2026-10-23T20:40:00+00:00")
+    await _compile(
+        hass,
+        freezer,
+        "2026-10-23T19:30:00+00:00",
+        "2026-10-23T19:55:00+00:00",
+        "2026-10-23T20:10:00+00:00",
+        "2026-10-23T20:55:00+00:00",
+        "2026-10-23T21:55:00+00:00",
+    )
+    assert await _change(hass, STEPS, DAY_BEFORE_START) == 200
+
+    garmin_days.days[DAY_BEFORE] = _summary(DAY_BEFORE, 1500, 1400)
+    garmin_days.days[date(2026, 10, 24)] = _summary(date(2026, 10, 24), 50, 40)
+    await _poll(hass, freezer, "2026-10-23T22:20:00+00:00")
+    await _compile(hass, freezer, "2026-10-23T22:20:00+00:00")
+
+    assert await _change(hass, STEPS, DAY_BEFORE_START) == 1500
+    assert await _change(hass, DISTANCE, DAY_BEFORE_START) == pytest.approx(1.4)
+    assert await _change(hass, STEPS, MIDNIGHT) == 50
+
+    # The hourly re-check finds the same total and adds nothing.
+    await _poll(hass, freezer, "2026-10-23T23:20:00+00:00")
+    assert await _change(hass, STEPS, DAY_BEFORE_START) == 1500
+    assert await _change(hass, STEPS, MIDNIGHT) == 50
+
+    # The next night corrects the new day, whose change starts from the last row before
+    # the gap, not from its own first row.
+    await _compile(
+        hass, freezer, "2026-10-23T22:55:00+00:00", "2026-10-24T21:55:00+00:00"
+    )
+    garmin_days.days[date(2026, 10, 24)] = _summary(date(2026, 10, 24), 80, 60)
+    garmin_days.days[date(2026, 10, 25)] = _summary(date(2026, 10, 25), 0, 0)
+    await _poll(hass, freezer, "2026-10-24T22:20:00+00:00")
+    assert await _change(hass, STEPS, MIDNIGHT) == 80
     assert await _change(hass, STEPS, DAY_BEFORE_START) == 1500

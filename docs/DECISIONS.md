@@ -345,7 +345,7 @@ records them.
 After midnight the coordinator also fetches the day before: on every poll until today's
 summary has a last sync time, then hourly until the next midnight (DESIGN.md, Coordinator). Each daily-total sensor then compares Garmin's total with
 the change the recorder holds for that day, and adds the difference to its own statistic with
-`Recorder.async_adjust_statistics`, from the day's last hour on. The same operation backs
+`Recorder.async_adjust_statistics`, from the day's last recorded hour on. The same operation backs
 "Adjust a statistic" in the developer tools: it adds the amount to the `sum` of every row from
 that hour on, so later days keep their own change and no spike appears.
 
@@ -365,6 +365,14 @@ statistics stayed short. A later sync, a second device or a manual
 entry can add to the day before at any time. Fetching it hourly for the rest of the day costs
 24 requests a day; the correction adds only the difference to what the recorder holds, so
 repeating it never counts anything twice.
+
+Until 2026-11-05 the adjustment started at the day's last hour, and the recorded change came
+from `statistic_during_period`. On the real instance, one account's watch did not reach its
+phone for a day and a half, so the sensor had no value and the recorder wrote no hourly rows.
+The adjustment then found no row to change and the day stayed at zero. The next day's change was
+measured from its own first row, so its first hour counted twice. The adjustment now starts at
+the day's last existing row, and the change comes from `statistics_during_period`, which
+measures each row against the last row before it (DESIGN.md, Correcting the day before).
 
 No core integration calls `async_adjust_statistics` today; only the recorder's WebSocket API
 does. Expect to explain this in the core review, and fall back to external statistics if

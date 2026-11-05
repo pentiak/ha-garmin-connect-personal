@@ -224,12 +224,19 @@ Intensity minutes use Garmin's weighting, where a vigorous minute counts as two.
 A daily total's state only ever shows the current day, so whatever syncs after midnight for
 the day before never reaches the state, and that day's long-term statistics stop at the last
 value before midnight. When the coordinator has the day before, each daily-total sensor reads
-the day's `change` from the recorder (Garmin's midnight to midnight) and, if it differs from
-Garmin's total for the day, calls the recorder's `async_adjust_statistics` with the difference
-from the day's last hour on. That shifts the running `sum` of every later row by the same
-amount, so the day before gets the full total and later days keep their own change. Reading
-the recorded change, not a value kept in memory, makes the correction safe to repeat after a
-restart. ADR-0023.
+the day's hourly statistics from the recorder (Garmin's midnight to midnight) and adds up their
+`change`. If that differs from Garmin's total for the day, it calls the recorder's
+`async_adjust_statistics` with the difference from the day's last recorded hour on. That shifts
+the running `sum` of every later row by the same amount, so the day before gets the full total
+and later days keep their own change. Reading the recorded change, not a value kept in memory,
+makes the correction safe to repeat after a restart. ADR-0023.
+
+The recorder writes no hourly row while a sensor has no value, for example while a watch does
+not reach its phone. So the adjustment starts at the day's last existing row, not at its last
+hour: an adjustment from an hour with no rows after it changes nothing. For the same reason
+the change is read with `statistics_during_period`, which measures each row against the last
+row before it however far back, and not with `statistic_during_period`, which after such a gap
+measures the day from its own first row.
 
 Known effects:
 

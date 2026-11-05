@@ -8,7 +8,7 @@ from typing import override
 
 from aio_garmin_personal import DailySummary, HrvSummary
 
-from homeassistant.components.recorder.statistics import statistic_during_period
+from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -325,8 +325,8 @@ class GarminConnectPersonalSensor(
 
         Data synced after midnight never reaches the state, so the day's change in the
         statistics stops at the last value before midnight. The difference is added to
-        the statistics from the day's last hour on, which raises that day's total and
-        leaves the totals of later days as they were.
+        the statistics from the day's last recorded hour on, which raises that day's total
+        and leaves the totals of later days as they were.
         """
         value = self.entity_description.value_fn(summary)
         if not isinstance(value, int | float):
@@ -345,26 +345,16 @@ class GarminConnectPersonalSensor(
         if unit and (converter := UNIT_CONVERTERS.get(self.device_class)):
             units = {converter.UNIT_CLASS: unit}
         recorder = get_instance(self.hass)
-        recorded = (
-            await recorder.async_add_executor_job(
-                statistic_during_period,
-                self.hass,
-                start,
-                end,
-                self.entity_id,
-                {"change"},
-                units,
-            )
-        ).get("change")
-        # No statistics for that day: the sensor did not exist or was disabled.
-        if recorded is None:
+        recorded, last_hour = await recorder.async_add_executor_job(
+            _recorded_day, self.hass, self.entity_id, start, end, units
+        )
+        # No statistics for that day: the sensor did not exist, was disabled or had no
+        # value all day.
+        if recorded is None or last_hour is None:
             self._corrected_day = None
             return
         if math.isclose(value, recorded, abs_tol=1e-6):
             return
-        last_hour = dt_util.as_utc(end - timedelta(minutes=1)).replace(
-            minute=0, second=0, microsecond=0
-        )
         LOGGER.debug(
             "Adding %s to the statistics of %s for %s",
             value - recorded,
@@ -374,6 +364,29 @@ class GarminConnectPersonalSensor(
         recorder.async_adjust_statistics(
             self.entity_id, last_hour, value - recorded, unit or ""
         )
+
+
+def _recorded_day(
+    hass: HomeAssistant,
+    statistic_id: str,
+    start: datetime,
+    end: datetime,
+    units: dict[str, str] | None,
+) -> tuple[float | None, datetime | None]:
+    """Return a day's change in the statistics, and the start of its last recorded hour.
+
+    The recorder writes no hourly row while the sensor has no value, for example while a
+    watch does not reach its phone. An adjustment applies only to rows that exist, so it
+    has to start at a row of that day rather than at the day's last hour. Each row's
+    change is taken against the last row before it, however long ago that was.
+    """
+    rows = statistics_during_period(
+        hass, start, end, {statistic_id}, "hour", units, {"change"}
+    ).get(statistic_id)
+    if not rows:
+        return None, None
+    change = sum(row.get("change") or 0 for row in rows)
+    return change, dt_util.utc_from_timestamp(rows[-1]["start"])
 
 
 class GarminConnectPersonalSleepSensor(
