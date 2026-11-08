@@ -1,54 +1,5 @@
 # Plan
 
-## Status
-
-Update this section at the end of every working session.
-
-- **Last updated:** 2026-11-02
-- **Current phase:** 3 (integration in a real Home Assistant, first HACS release), with
-  phases 4 and 5 in parallel
-- **State:** Phases 0 to 2 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
-  repositories were recreated on 2026-10-23 with a single fresh commit each; ADR-0021
-  records what they may contain. Both are public, and their settings match Repository
-  settings below. aio-garmin-personal 0.2.1 is on PyPI, published by `release.yml` through
-  trusted publishing. Both repositories release from a tag (ADR-0024).
-- **Phase 3 step 3 in progress:** the integration has run on a real instance with two
-  accounts since 2026-10-23, installed through HACS from `master` from 2026-10-27, from the
-  `v0.1.0` release on 2026-10-30, and from `master` again (with the sleep and HRV sensors)
-  since later that day. Daily totals reset at Garmin's midnight, including
-  the DST change on 2026-10-25. Checked on the instance:
-  - the day before is corrected after a late sync (ADR-0023): the corrected totals for
-    2026-10-26 match the Garmin Connect app, and later days were unchanged;
-  - deleting the key in Garmin Connect starts reauthentication at the next poll, and
-    entering a new key brings the entry back. Before 0.2.1 the token endpoint's 404 for a
-    deleted key was reported as a temporary failure and no reauth started;
-  - reconfigure with a new key for the same account works;
-  - the totals for 2026-10-27, 2026-10-28 and 2026-10-29 match Garmin's API exactly in
-    the recorder's daily statistics. On the last two days the watch synced part of the day
-    only after midnight, so the states before midnight were short and the correction added
-    the rest; the earlier days stayed unchanged. 2026-10-31 and 2026-11-01 match too;
-  - 2026-10-30 is short: Garmin added to that day after the first sync of the next day,
-    when the integration had stopped fetching it. #19 fetches the day before hourly until
-    midnight, which catches that.
-- **Phase 4:** the user documentation is in the README; the brand check found that the
-  Garmin logo needs Garmin's permission, so the placeholder icon stays. Garmin's developer
-  support answers registered licensees only, so the questions about the logo, the
-  attribution and the name went to Garmin customer support instead.
-- **Phase 5, library side, done (ADR-0025):** aio-garmin-personal 0.3.0 is on PyPI and
-  covers every endpoint except `weight/all`. **Integration side:** sleep and HRV sensors
-  from a second coordinator (ADR-0026), on aio-garmin-personal 0.3.0; tested with made-up
-  fixtures, and on 2026-10-30 the library read today's and yesterday's sleep and HRV from
-  the real API: every field the sensors use was present, and the HRV status was one of
-  the six enum values. On the instance, both accounts' sensors showed the same values as
-  the API on the first refresh. Home Assistant now puts the device's area into the entity
-  IDs of newly created entities, so the new sensors came up as `sensor.system_…` on a device
-  in an area called "System"; renaming them in the entity registry keeps their history.
-- **Next step:** keep `master` running until 2026-11-06, a week from installing the sleep
-  and HRV sensors, which completes phase 3. Compare a few mornings' sleep and HRV with the
-  app. Once #19 is merged, install `master` again and check that a day's statistics still
-  match Garmin when something reaches Garmin late; then release `v0.2.0`. Wait for customer
-  support's reply about the logo. Continue phase 5 with the next candidates.
-
 ## Phases
 
 The quality-scale state of each rule is tracked in
@@ -117,14 +68,13 @@ Both repositories, applied with `gh` after they were recreated:
 **Done when:** `pip install aio-garmin-personal==0.1.0` works and the PyPI release links to
 the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
 
-### Phase 3: Integration on GitHub, in a real Home Assistant, first HACS release
+### Phase 3: Integration on GitHub, in a real Home Assistant, first HACS release (done 2026-11-08)
 
 1. Done: `github.com/pentiak/ha-garmin-connect-personal` is public. The `tests` workflow
    installs the library from PyPI.
 2. Done: `validate` (hassfest, HACS action) is green.
-3. Run it in a real Home Assistant: add the repository as a HACS custom repository, or copy
-   `custom_components/garmin_connect_personal` into a test instance's config. Run it for at
-   least several days across midnight and check:
+3. Done 2026-11-08: run it in a real Home Assistant, installed through HACS, for at least
+   several days across midnight, and check:
    - daily totals start a new statistics cycle at Garmin midnight (`last_reset`), and the
      long-term statistics for a day match the Garmin Connect app;
    - an expired or deleted key leads to the reauth notification, and a new key fixes it
