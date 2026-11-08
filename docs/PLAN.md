@@ -4,15 +4,15 @@
 
 Update this section at the end of every working session.
 
-- **Last updated:** 2026-11-02
-- **Current phase:** 3 (integration in a real Home Assistant, first HACS release), with
-  phases 4 and 5 in parallel
+- **Last updated:** 2026-11-08
+- **Current phase:** 4 (documentation and brand) and 5 (more data); phase 3 was completed on
+  2026-11-08
 - **State:** Phases 0 to 2 are done, with guardrails (ADR-0018 to ADR-0020). Both GitHub
   repositories were recreated on 2026-10-23 with a single fresh commit each; ADR-0021
   records what they may contain. Both are public, and their settings match Repository
   settings below. aio-garmin-personal 0.2.1 is on PyPI, published by `release.yml` through
   trusted publishing. Both repositories release from a tag (ADR-0024).
-- **Phase 3 step 3 in progress:** the integration has run on a real instance with two
+- **Phase 3 done:** the integration has run on a real instance with two
   accounts since 2026-10-23, installed through HACS from `master` from 2026-10-27, from the
   `v0.1.0` release on 2026-10-30, and from `master` again (with the sleep and HRV sensors)
   since later that day. Daily totals reset at Garmin's midnight, including
@@ -29,7 +29,19 @@ Update this section at the end of every working session.
     the rest; the earlier days stayed unchanged. 2026-10-31 and 2026-11-01 match too;
   - 2026-10-30 is short: Garmin added to that day after the first sync of the next day,
     when the integration had stopped fetching it. #19 fetches the day before hourly until
-    midnight, which catches that.
+    midnight, which catches that. With #19 installed, 2026-11-02 to 2026-11-04 and
+    2026-11-06 matched Garmin's API exactly for the account that was checked;
+  - one account's watch did not reach its phone from just after midnight at the start of
+    2026-11-02 until the morning of 2026-11-03. That day stayed at zero and the next day counted its
+    first hour twice; #21 fixes both (ADR-0023). The two days on the instance were repaired
+    once by hand with the recorder's statistics adjustment;
+  - from 2026-11-02 to 2026-11-08, sleep score, sleep duration, HRV last night and HRV
+    status matched the Garmin Connect app every morning, each soon after the watch synced.
+- **Home Assistant 2026.11** replaced HACS with the Marketplace, which migrated the
+  installed repository. The Marketplace installs and updates nothing, including through
+  `update.install`, until the calling user has accepted its first-run warning; that
+  acceptance is stored per user. `update.install` with `version: master` still installs the
+  default branch, although the UI lists releases only.
 - **Phase 4:** the user documentation is in the README; the brand check found that the
   Garmin logo needs Garmin's permission, so the placeholder icon stays. Garmin's developer
   support answers registered licensees only, so the questions about the logo, the
@@ -43,11 +55,9 @@ Update this section at the end of every working session.
   the API on the first refresh. Home Assistant now puts the device's area into the entity
   IDs of newly created entities, so the new sensors came up as `sensor.system_…` on a device
   in an area called "System"; renaming them in the entity registry keeps their history.
-- **Next step:** keep `master` running until 2026-11-06, a week from installing the sleep
-  and HRV sensors, which completes phase 3. Compare a few mornings' sleep and HRV with the
-  app. Once #19 is merged, install `master` again and check that a day's statistics still
-  match Garmin when something reaches Garmin late; then release `v0.2.0`. Wait for customer
-  support's reply about the logo. Continue phase 5 with the next candidates.
+- **Next step:** tag the merge commit of the 0.2.0 release PR `v0.2.0` and install the
+  release from the Marketplace. Wait for customer support's reply about the logo. Continue
+  phase 5 with the next candidates.
 
 ## Phases
 
@@ -122,7 +132,7 @@ the tag. Then set `dependency-transparency: done` in `quality_scale.yaml`.
 1. Done: `github.com/pentiak/ha-garmin-connect-personal` is public. The `tests` workflow
    installs the library from PyPI.
 2. Done: `validate` (hassfest, HACS action) is green.
-3. Run it in a real Home Assistant: add the repository as a HACS custom repository, or copy
+3. Done 2026-11-08 (see Status): run it in a real Home Assistant: add the repository as a HACS custom repository, or copy
    `custom_components/garmin_connect_personal` into a test instance's config. Run it for at
    least several days across midnight and check:
    - daily totals start a new statistics cycle at Garmin midnight (`last_reset`), and the
