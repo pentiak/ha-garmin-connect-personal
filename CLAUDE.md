@@ -3,8 +3,8 @@
 Home Assistant custom integration `garmin_connect_personal`, released through HACS, written to
 core's rules for a later core submission (ADR-0004).
 
-Start with the Status section of `docs/PLAN.md`. `docs/DESIGN.md` describes how it works,
-`docs/DECISIONS.md` why. `custom_components/garmin_connect_personal/quality_scale.yaml` is the
+`docs/PLAN.md` is the roadmap: phases and open questions. `docs/DESIGN.md` describes how it
+works, `docs/DECISIONS.md` why. The session-by-session status is kept outside the repository. `custom_components/garmin_connect_personal/quality_scale.yaml` is the
 checklist of quality-scale rules; update it whenever a rule's state changes.
 
 ## Commands
