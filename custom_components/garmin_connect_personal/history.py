@@ -186,17 +186,26 @@ class GarminConnectPersonalHistory:
         """Fetch the days a month at a time, oldest first, and import each month."""
         yesterday = dt_util.now(self.time_zone).date() - timedelta(days=1)
         ids = history_statistic_ids(self.entry)
-        last_rows = await get_instance(self.hass).async_add_executor_job(
-            self._last_rows, ids
-        )
+        recorder = get_instance(self.hass)
+        last_rows = await recorder.async_add_executor_job(self._last_rows, ids)
+        newest = [
+            dt_util.utc_from_timestamp(rows[0]["start"])
+            for rows in last_rows.values()
+            if rows
+        ]
+        if any(
+            start != _row_start(start.astimezone(self.time_zone).date(), self.time_zone)
+            for start in newest
+        ):
+            # The Garmin zone has changed, so the days imported again would get a second
+            # row at another hour. The recorder runs its jobs in order, so the statistics
+            # are cleared before this run's rows are added.
+            LOGGER.info("The Garmin time zone has changed; importing the history again")
+            recorder.async_clear_statistics(ids)
+            last_rows = {}
+            newest = []
         last_day = max(
-            (
-                dt_util.utc_from_timestamp(rows[0]["start"])
-                .astimezone(self.time_zone)
-                .date()
-                for rows in last_rows.values()
-                if rows
-            ),
+            (start.astimezone(self.time_zone).date() for start in newest),
             default=None,
         )
         first = (

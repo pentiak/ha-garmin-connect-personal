@@ -329,6 +329,9 @@ recorder is loaded. A run that is still going makes the next one a no-op.
   are replaced.
 - **Errors:** a rejected key starts reauthentication with `entry.async_start_reauth`. Other
   errors log a warning once until a run succeeds again, which logs that at info level.
+- **Zone changes:** when the newest row of any statistic is not at the row start of its day
+  in the current Garmin zone, the run clears all of the entry's statistics and imports the
+  three years again. The recorder runs its jobs in order, so the clearing comes first.
 - **Removal:** `async_remove_entry` clears the statistics. Unloading keeps them.
 
 ### Diagnostics

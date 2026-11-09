@@ -347,3 +347,29 @@ async def test_removing_the_entry_clears_the_statistics(
     await _settle(hass)
 
     assert await _rows(hass, STEPS) == []
+
+
+async def test_zone_change_imports_everything_again(
+    hass: HomeAssistant,
+    mock_client: AsyncMock,
+    history: FakeGarminHistory,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test that rows from another zone are replaced, not doubled, after a zone change."""
+    history.days[date(2026, 10, 21)] = _steps(date(2026, 10, 21), 5000)
+    history.days[date(2026, 10, 22)] = _steps(date(2026, 10, 22), 9120)
+    await _setup(hass, mock_config_entry)
+    history.requests.clear()
+
+    mock_client.async_get_user_settings.return_value = UserSettings.from_dict(
+        load_json("user_settings.json") | {"timeZone": "Asia/Tokyo"}
+    )
+    assert await hass.config_entries.async_reload(mock_config_entry.entry_id)
+    await _settle(hass)
+
+    # Noon in Tokyo is 03:00 UTC.
+    assert await _rows(hass, STEPS) == [
+        (_at("2026-10-21T03:00:00+00:00"), 5000.0, 5000.0),
+        (_at("2026-10-22T03:00:00+00:00"), 9120.0, 14120.0),
+    ]
+    assert len(history.requests) == 36

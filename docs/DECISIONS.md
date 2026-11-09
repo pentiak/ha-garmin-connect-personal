@@ -553,7 +553,9 @@ long-term statistics.
   the two zones are 12 hours or more apart. Rounding down keeps rows on the hourly grid in
   zones with a half-hour offset: the recorder checks for a whole hour before converting to
   UTC. The hourly view shows each day's total at midday. Today is not imported until it is
-  over.
+  over. When the Garmin zone changes, the newest rows are no longer at noon; the next run
+  then clears the statistics and imports everything again, since re-importing the last
+  week would give those days a second row at another hour.
 - **Only days with wellness data.** A day is imported only when Garmin sets
   `includesWellnessData`. On a real account, it was set on every day of the months probed
   a year and three years back, all with steps. Ten years back it was false on every day:
@@ -564,8 +566,8 @@ long-term statistics.
   opower's does, a month per request: Garmin rejects ranges over about a year and has
   answered with server errors for ranges of several months, while one-month ranges a year,
   three years and ten years back all succeeded. Afterwards, an hourly run
-  imports the days from a week before the last imported day up to yesterday, in one
-  request. Importing a row with the same start time replaces it, so the week of overlap
+  imports the days from a week before the last imported day up to yesterday, also a month
+  per request, which is one request unless Home Assistant was off for weeks. Importing a row with the same start time replaces it, so the week of overlap
   corrects days that changed after a late sync, another device or a manual entry. The sum
   continues from the row before the overlap.
 - **Outside the coordinators.** The import runs as a background task of the entry, started
