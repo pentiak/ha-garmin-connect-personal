@@ -158,6 +158,27 @@
       },
       "last_weigh_in": {
         "name": "Last weigh-in"
+      },
+      "last_activity": {
+        "name": "Last activity"
+      },
+      "last_activity_type": {
+        "name": "Last activity type"
+      },
+      "last_activity_start": {
+        "name": "Last activity start"
+      },
+      "last_activity_duration": {
+        "name": "Last activity duration"
+      },
+      "last_activity_distance": {
+        "name": "Last activity distance"
+      },
+      "last_activity_calories": {
+        "name": "Last activity calories"
+      },
+      "last_activity_average_heart_rate": {
+        "name": "Last activity average heart rate"
       }
     }
   },

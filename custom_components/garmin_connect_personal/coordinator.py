@@ -6,6 +6,7 @@ from datetime import date, datetime, time, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any, override
 
 from aio_garmin_personal import (
+    Activity,
     DailySleep,
     DailySummary,
     GarminPersonalAuthenticationError,
@@ -22,6 +23,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ACTIVITY_UPDATE_INTERVAL,
     DOMAIN,
     LOGGER,
     PREVIOUS_DAY_RECHECK_INTERVAL,
@@ -68,12 +70,20 @@ class GarminConnectPersonalWeightData:
 
 
 @dataclass(frozen=True, kw_only=True)
+class GarminConnectPersonalActivityData:
+    """The most recently started activity, or `None` if the account has none."""
+
+    latest: Activity | None
+
+
+@dataclass(frozen=True, kw_only=True)
 class GarminConnectPersonalRuntimeData:
     """The coordinators of a config entry."""
 
     daily: GarminConnectPersonalCoordinator
     sleep: GarminConnectPersonalSleepCoordinator
     weight: GarminConnectPersonalWeightCoordinator
+    activity: GarminConnectPersonalActivityCoordinator
 
 
 async def async_garmin_time_zone(name: str | None) -> tzinfo | None:
@@ -259,4 +269,37 @@ class GarminConnectPersonalWeightCoordinator(
         latest_day = max(days, key=lambda day: day.calendar_date, default=None)
         return GarminConnectPersonalWeightData(
             latest=latest_day.latest if latest_day else None
+        )
+
+
+class GarminConnectPersonalActivityCoordinator(
+    GarminConnectPersonalBaseCoordinator[GarminConnectPersonalActivityData]
+):
+    """Poll the most recently started activity.
+
+    Activities usually reach Garmin when the watch syncs, so the entry also requests a
+    refresh whenever the daily summary shows a new sync. Like the weight coordinator, its
+    first refresh may fail without failing setup.
+    """
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: GarminConnectPersonalConfigEntry,
+        client: GarminPersonalClient,
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass, entry, client, f"{DOMAIN} activity", ACTIVITY_UPDATE_INTERVAL
+        )
+        # Setup goes on when the first activity request fails, so the data must exist
+        # before any request has succeeded.
+        self.data = GarminConnectPersonalActivityData(latest=None)
+
+    @override
+    async def _async_update_data(self) -> GarminConnectPersonalActivityData:
+        """Fetch the first activity of Garmin's list, which is sorted newest first."""
+        activities = await self._async_call(self.client.async_get_activities(limit=1))
+        return GarminConnectPersonalActivityData(
+            latest=activities[0] if activities else None
         )

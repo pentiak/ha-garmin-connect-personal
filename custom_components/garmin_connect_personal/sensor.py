@@ -6,7 +6,7 @@ from datetime import date, datetime, time, timedelta
 import math
 from typing import override
 
-from aio_garmin_personal import DailySummary, HrvSummary, WeightEntry
+from aio_garmin_personal import Activity, DailySummary, HrvSummary, WeightEntry
 
 from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.components.sensor import (
@@ -32,6 +32,7 @@ from homeassistant.util import dt as dt_util
 from . import GarminConnectPersonalConfigEntry
 from .const import LOGGER
 from .coordinator import (
+    GarminConnectPersonalActivityCoordinator,
     GarminConnectPersonalCoordinator,
     GarminConnectPersonalSleepCoordinator,
     GarminConnectPersonalSleepData,
@@ -386,6 +387,71 @@ WEIGHT_SENSORS: tuple[GarminConnectPersonalWeightSensorEntityDescription, ...] =
 )
 
 
+@dataclass(frozen=True, kw_only=True)
+class GarminConnectPersonalActivitySensorEntityDescription(SensorEntityDescription):
+    """Describes a sensor read from the most recently started activity."""
+
+    value_fn: Callable[[Activity], float | str | datetime | None]
+
+
+# The values describe one activity each, not a quantity measured over time, so none has
+# a state class: hourly statistics of them would mean nothing.
+ACTIVITY_SENSORS: tuple[GarminConnectPersonalActivitySensorEntityDescription, ...] = (
+    GarminConnectPersonalActivitySensorEntityDescription(
+        key="last_activity",
+        translation_key="last_activity",
+        value_fn=lambda activity: activity.activity_name,
+    ),
+    GarminConnectPersonalActivitySensorEntityDescription(
+        key="last_activity_type",
+        translation_key="last_activity_type",
+        entity_registry_enabled_default=False,
+        value_fn=lambda activity: activity.activity_type,
+    ),
+    GarminConnectPersonalActivitySensorEntityDescription(
+        key="last_activity_start",
+        translation_key="last_activity_start",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        value_fn=lambda activity: activity.start_time_gmt,
+    ),
+    GarminConnectPersonalActivitySensorEntityDescription(
+        key="last_activity_duration",
+        translation_key="last_activity_duration",
+        native_unit_of_measurement=UnitOfTime.SECONDS,
+        suggested_unit_of_measurement=UnitOfTime.MINUTES,
+        suggested_display_precision=0,
+        device_class=SensorDeviceClass.DURATION,
+        value_fn=lambda activity: activity.duration_seconds,
+    ),
+    GarminConnectPersonalActivitySensorEntityDescription(
+        key="last_activity_distance",
+        translation_key="last_activity_distance",
+        native_unit_of_measurement=UnitOfLength.METERS,
+        suggested_unit_of_measurement=UnitOfLength.KILOMETERS,
+        suggested_display_precision=2,
+        device_class=SensorDeviceClass.DISTANCE,
+        entity_registry_enabled_default=False,
+        value_fn=lambda activity: activity.distance_meters,
+    ),
+    GarminConnectPersonalActivitySensorEntityDescription(
+        key="last_activity_calories",
+        translation_key="last_activity_calories",
+        native_unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
+        device_class=SensorDeviceClass.ENERGY,
+        entity_registry_enabled_default=False,
+        value_fn=lambda activity: activity.calories,
+    ),
+    GarminConnectPersonalActivitySensorEntityDescription(
+        key="last_activity_average_heart_rate",
+        translation_key="last_activity_average_heart_rate",
+        native_unit_of_measurement="bpm",
+        suggested_display_precision=0,
+        entity_registry_enabled_default=False,
+        value_fn=lambda activity: activity.average_heart_rate,
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: GarminConnectPersonalConfigEntry,
@@ -395,6 +461,7 @@ async def async_setup_entry(
     daily = entry.runtime_data.daily
     sleep = entry.runtime_data.sleep
     weight = entry.runtime_data.weight
+    activity = entry.runtime_data.activity
     async_add_entities(
         [
             *(
@@ -408,6 +475,10 @@ async def async_setup_entry(
             *(
                 GarminConnectPersonalWeightSensor(weight, description)
                 for description in WEIGHT_SENSORS
+            ),
+            *(
+                GarminConnectPersonalActivitySensor(activity, description)
+                for description in ACTIVITY_SENSORS
             ),
         ]
     )
@@ -588,6 +659,31 @@ class GarminConnectPersonalWeightSensor(
     @property
     def native_value(self) -> float | datetime | None:
         """Return the value of the latest entry, or `None` without one."""
+        if (latest := self.coordinator.data.latest) is None:
+            return None
+        return self.entity_description.value_fn(latest)
+
+
+class GarminConnectPersonalActivitySensor(
+    GarminConnectPersonalEntity[GarminConnectPersonalActivityCoordinator],
+    SensorEntity,
+):
+    """A value from the most recently started activity."""
+
+    entity_description: GarminConnectPersonalActivitySensorEntityDescription
+
+    def __init__(
+        self,
+        coordinator: GarminConnectPersonalActivityCoordinator,
+        description: GarminConnectPersonalActivitySensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, description.key)
+        self.entity_description = description
+
+    @property
+    def native_value(self) -> float | str | datetime | None:
+        """Return the value of the last activity, or `None` without one."""
         if (latest := self.coordinator.data.latest) is None:
             return None
         return self.entity_description.value_fn(latest)

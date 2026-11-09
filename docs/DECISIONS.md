@@ -488,3 +488,36 @@ scale. A third `DataUpdateCoordinator` fetches it.
   imperial systems; BMI, body fat and the weigh-in time disabled by default. Body
   composition is only set by a scale that measures it.
 - **Diagnostics leave out when the weight was entered.**
+
+## ADR-0028: The last activity comes from a fourth coordinator, refreshed after each sync
+
+**Status:** accepted, 2026-11-09
+
+The last activity sensors show the most recently started activity in Garmin Connect. A
+fourth `DataUpdateCoordinator` fetches it with one request for the first entry of the
+activity list.
+
+- **A coordinator of its own,** not more requests in the sleep coordinator, although both
+  refresh at the same times: a failing activity endpoint then makes only the activity
+  sensors unavailable, as in ADR-0026.
+- **Refreshed after each sync, and hourly.** Activities recorded on the watch reach Garmin
+  when it syncs, so the entry requests an activity refresh whenever it requests a sleep
+  refresh. The hourly poll covers activities that arrive another way, such as a manual
+  entry or another device, and syncs the daily coordinator misses.
+- **Setup does not wait for it,** for the reason in ADR-0027: the last activity is not needed
+  for the daily totals. A rejected key still starts reauthentication.
+- **The first entry of the list.** Garmin lists the newest activity first: on a real account,
+  the start times of the last 50 were in order. They were in the order of their IDs too, so
+  whether an activity entered later for an earlier time comes first is not known. There is
+  no age limit: the start time sensor says how old the activity is.
+- **No state class.** Each value describes one activity, not a quantity measured over time.
+  Hourly statistics of the last activity's distance would mean nothing, and the daily
+  totals already record the day's distance and calories.
+- **The type is plain text,** Garmin's type key. An enum sensor would need every type Garmin
+  has as an option, and Garmin adds types.
+- **Sensors:** the name, start time and duration enabled; the type, distance, calories and
+  average heart rate disabled by default.
+- **Diagnostics keep only the values the sensors use, apart from the name and start time.**
+  An activity carries its coordinates, and its name is often the place. A list of fields to
+  keep also leaves out whatever Garmin adds later, which a list of fields to redact would
+  let through.
