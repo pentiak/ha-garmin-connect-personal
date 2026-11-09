@@ -464,3 +464,24 @@ second `DataUpdateCoordinator` fetches them, next to the daily one.
 - **Sensors:** sleep score and duration, HRV last night and status enabled; the four sleep
   stages and the weekly HRV average disabled by default. The HRV status is an enum sensor
   with the six statuses in Garmin's OpenAPI document.
+
+## ADR-0027: Weight comes from a third coordinator, polled hourly
+
+**Status:** accepted, 2026-11-09
+
+The weight sensors show the latest entry in Garmin Connect, whether entered by hand or by a
+scale. A third `DataUpdateCoordinator` fetches it.
+
+- **A coordinator of its own,** for the reason in ADR-0026: once the entry is set up, a
+  failing weight endpoint makes only the weight sensors unavailable. Setup needs its first
+  refresh to succeed, as for sleep.
+- **Hourly, and not after each sync.** A weight reaches Garmin from a scale's own sync or a
+  manual entry, not from the watch, so the daily summary's sync time says nothing about it.
+  Weight changes rarely; an hour's delay costs little and adds one request an hour.
+- **The last year.** Each poll requests the entries of the last 365 days (Garmin accepts
+  three years) and keeps the latest entry of the most recent day. A longer gap leaves the
+  sensors `unknown`, which is more honest than a weight more than a year old.
+- **Sensors:** weight enabled, in grams shown as kilograms, so Home Assistant converts it for
+  imperial systems; BMI, body fat and the weigh-in time disabled by default. Body
+  composition is only set by a scale that measures it.
+- **Diagnostics leave out when the weight was entered.**

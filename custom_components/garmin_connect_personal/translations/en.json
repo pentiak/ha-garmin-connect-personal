@@ -149,6 +149,15 @@
           "balanced": "Balanced",
           "invalid": "Invalid"
         }
+      },
+      "bmi": {
+        "name": "BMI"
+      },
+      "body_fat": {
+        "name": "Body fat"
+      },
+      "last_weigh_in": {
+        "name": "Last weigh-in"
       }
     }
   },

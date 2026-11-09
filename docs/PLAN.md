@@ -134,7 +134,8 @@ Integration side, after phase 3: each sensor needs the library release first. Ca
   average, weekly average, status).
 - Done 2026-11-09: Body Battery details, SpO2, respiration and the day's heart rate range,
   from the daily summary on aio-garmin-personal 0.4.0.
-- Weight: `/weight-service/weight/range/{startDate}/{endDate}`.
+- Done 2026-11-09, ADR-0027: weight, BMI, body fat and the weigh-in time, from
+  `/weight-service/weight/range/{startDate}/{endDate}`.
 - Last activity: `/activitylist-service/activities/search/activities`.
 - History import into long-term statistics from `/usersummary-service/v2/dailysummaries`,
   as external statistics; the sensors' own statistics only cover the day before (ADR-0023).

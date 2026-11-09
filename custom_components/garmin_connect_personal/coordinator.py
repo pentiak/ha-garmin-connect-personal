@@ -13,6 +13,7 @@ from aio_garmin_personal import (
     GarminPersonalError,
     GarminPersonalRateLimitError,
     HrvSummary,
+    WeightEntry,
 )
 
 from homeassistant.core import HomeAssistant
@@ -27,6 +28,8 @@ from .const import (
     PREVIOUS_DAY_SETTLE_TIME,
     SLEEP_UPDATE_INTERVAL,
     UPDATE_INTERVAL,
+    WEIGHT_LOOKBACK,
+    WEIGHT_UPDATE_INTERVAL,
 )
 
 if TYPE_CHECKING:
@@ -58,11 +61,19 @@ class GarminConnectPersonalSleepData:
 
 
 @dataclass(frozen=True, kw_only=True)
+class GarminConnectPersonalWeightData:
+    """The latest weight entry of the last year, or `None` without one."""
+
+    latest: WeightEntry | None
+
+
+@dataclass(frozen=True, kw_only=True)
 class GarminConnectPersonalRuntimeData:
     """The coordinators of a config entry."""
 
     daily: GarminConnectPersonalCoordinator
     sleep: GarminConnectPersonalSleepCoordinator
+    weight: GarminConnectPersonalWeightCoordinator
 
 
 async def async_garmin_time_zone(name: str | None) -> tzinfo | None:
@@ -209,4 +220,36 @@ class GarminConnectPersonalSleepCoordinator(
             hrv = await self._async_call(self.client.async_get_hrv(yesterday))
         return GarminConnectPersonalSleepData(
             sleep=sleep, hrv=hrv.summary if hrv is not None else None
+        )
+
+
+class GarminConnectPersonalWeightCoordinator(
+    GarminConnectPersonalBaseCoordinator[GarminConnectPersonalWeightData]
+):
+    """Poll the latest weight entry, entered by hand or by a scale."""
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: GarminConnectPersonalConfigEntry,
+        client: GarminPersonalClient,
+        time_zone: tzinfo,
+    ) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass, entry, client, f"{DOMAIN} weight", WEIGHT_UPDATE_INTERVAL
+        )
+        self.time_zone = time_zone
+
+    @override
+    async def _async_update_data(self) -> GarminConnectPersonalWeightData:
+        """Fetch the last year's weight and keep the most recent entry."""
+        today = dt_util.now(self.time_zone).date()
+        weight = await self._async_call(
+            self.client.async_get_weight(today - WEIGHT_LOOKBACK, today)
+        )
+        days = [day for day in weight.days if day.latest is not None]
+        latest_day = max(days, key=lambda day: day.calendar_date, default=None)
+        return GarminConnectPersonalWeightData(
+            latest=latest_day.latest if latest_day else None
         )

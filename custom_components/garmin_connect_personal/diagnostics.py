@@ -37,6 +37,9 @@ SLEEP_TO_REDACT = {
     "userProfilePk",
 }
 
+# When the weight was entered. `samplePk` and `date` are timestamps too.
+WEIGHT_TO_REDACT = {"date", "samplePk", "timestampGMT"}
+
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: GarminConnectPersonalConfigEntry
@@ -47,6 +50,8 @@ async def async_get_config_entry_diagnostics(
     summary = daily.data.summary
     sleep = night.data.sleep
     hrv = night.data.hrv
+    weight = entry.runtime_data.weight
+    latest_weight = weight.data.latest
     return {
         "entry": async_redact_data(entry.data, TO_REDACT),
         "time_zone": str(daily.time_zone),
@@ -55,4 +60,8 @@ async def async_get_config_entry_diagnostics(
         "sleep_last_update_success": night.last_update_success,
         "sleep": async_redact_data(dict(sleep.raw), SLEEP_TO_REDACT) if sleep else None,
         "hrv": async_redact_data(dict(hrv.raw), SLEEP_TO_REDACT) if hrv else None,
+        "weight_last_update_success": weight.last_update_success,
+        "weight": async_redact_data(dict(latest_weight.raw), WEIGHT_TO_REDACT)
+        if latest_weight
+        else None,
     }

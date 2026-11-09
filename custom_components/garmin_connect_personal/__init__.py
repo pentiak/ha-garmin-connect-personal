@@ -13,6 +13,7 @@ from .coordinator import (
     GarminConnectPersonalCoordinator,
     GarminConnectPersonalRuntimeData,
     GarminConnectPersonalSleepCoordinator,
+    GarminConnectPersonalWeightCoordinator,
 )
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
@@ -31,7 +32,13 @@ async def async_setup_entry(
     await daily.async_config_entry_first_refresh()
     sleep = GarminConnectPersonalSleepCoordinator(hass, entry, client, daily.time_zone)
     await sleep.async_config_entry_first_refresh()
-    entry.runtime_data = GarminConnectPersonalRuntimeData(daily=daily, sleep=sleep)
+    weight = GarminConnectPersonalWeightCoordinator(
+        hass, entry, client, daily.time_zone
+    )
+    await weight.async_config_entry_first_refresh()
+    entry.runtime_data = GarminConnectPersonalRuntimeData(
+        daily=daily, sleep=sleep, weight=weight
+    )
 
     last_seen: tuple[date, datetime | None] | None = None
     if daily.data.summary is not None:

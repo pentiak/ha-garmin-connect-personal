@@ -113,7 +113,17 @@ has synced it, the night before.
 | HRV weekly average | ms | Average of the nightly HRV over the last seven days. Disabled by default. |
 | HRV status | | Garmin's HRV status against your baseline: Balanced, Unbalanced, Low, Poor, No status or Invalid. |
 
-SpO2 and respiration need a device that measures them, with Pulse Ox switched on for SpO2;
+The weight sensors show the latest weight entry of the last year, entered in Garmin Connect
+by hand or by a scale.
+
+| Sensor | Unit | Description |
+|---|---|---|
+| Weight | kg | The latest weight. |
+| BMI | | Body mass index of the latest entry. Disabled by default. |
+| Body fat | % | Body fat of the latest entry. Disabled by default. |
+| Last weigh-in | | When the latest weight was recorded. Disabled by default. |
+
+BMI and body fat need a scale that measures them. SpO2 and respiration need a device that measures them, with Pulse Ox switched on for SpO2;
 otherwise those sensors stay unknown.
 
 The daily totals (calories, steps, distance, floors, intensity minutes and Body Battery
@@ -131,6 +141,8 @@ shows when that was.
 Sleep and HRV are read again whenever the daily summary shows a new sync, and every hour in
 any case. Last night's values usually appear within 10 minutes of the first sync after you
 wake up.
+
+Weight is read every hour, so a new weigh-in can take up to an hour to appear.
 
 Some of what your device records late in the evening reaches Garmin only with the first sync
 after midnight, when the sensors already show the new day. For the day before, the integration
