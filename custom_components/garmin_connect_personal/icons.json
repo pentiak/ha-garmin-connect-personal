@@ -105,6 +105,27 @@
       },
       "last_weigh_in": {
         "default": "mdi:scale-bathroom"
+      },
+      "last_activity": {
+        "default": "mdi:run"
+      },
+      "last_activity_type": {
+        "default": "mdi:format-list-bulleted-type"
+      },
+      "last_activity_start": {
+        "default": "mdi:clock-start"
+      },
+      "last_activity_duration": {
+        "default": "mdi:timer-outline"
+      },
+      "last_activity_distance": {
+        "default": "mdi:map-marker-distance"
+      },
+      "last_activity_calories": {
+        "default": "mdi:fire"
+      },
+      "last_activity_average_heart_rate": {
+        "default": "mdi:heart-pulse"
       }
     }
   }

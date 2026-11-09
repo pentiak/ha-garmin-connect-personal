@@ -40,6 +40,11 @@ SLEEP_TO_REDACT = {
 # When the weight was entered. `samplePk` and `date` are timestamps too.
 WEIGHT_TO_REDACT = {"date", "samplePk", "timestampGMT"}
 
+# An activity carries its start and end coordinates, its name, which Garmin often makes
+# from the place, its times and the owner. Only the fields the sensors read besides the
+# name and start time are kept, so that a field Garmin adds later is left out too.
+ACTIVITY_TO_KEEP = ("activityType", "duration", "distance", "calories", "averageHR")
+
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: GarminConnectPersonalConfigEntry
@@ -52,6 +57,8 @@ async def async_get_config_entry_diagnostics(
     hrv = night.data.hrv
     weight = entry.runtime_data.weight
     latest_weight = weight.data.latest
+    activity = entry.runtime_data.activity
+    latest_activity = activity.data.latest
     return {
         "entry": async_redact_data(entry.data, TO_REDACT),
         "time_zone": str(daily.time_zone),
@@ -63,5 +70,13 @@ async def async_get_config_entry_diagnostics(
         "weight_last_update_success": weight.last_update_success,
         "weight": async_redact_data(dict(latest_weight.raw), WEIGHT_TO_REDACT)
         if latest_weight
+        else None,
+        "activity_last_update_success": activity.last_update_success,
+        "activity": {
+            key: latest_activity.raw[key]
+            for key in ACTIVITY_TO_KEEP
+            if key in latest_activity.raw
+        }
+        if latest_activity
         else None,
     }

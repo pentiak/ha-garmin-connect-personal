@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .coordinator import (
+    GarminConnectPersonalActivityCoordinator,
     GarminConnectPersonalCoordinator,
     GarminConnectPersonalRuntimeData,
     GarminConnectPersonalSleepCoordinator,
@@ -35,10 +36,13 @@ async def async_setup_entry(
     weight = GarminConnectPersonalWeightCoordinator(
         hass, entry, client, daily.time_zone
     )
-    # Weight is the least needed; a failure leaves only its sensors unavailable.
+    activity = GarminConnectPersonalActivityCoordinator(hass, entry, client)
+    # Weight and the last activity are the least needed; a failure leaves only their
+    # sensors unavailable.
     await weight.async_refresh()
+    await activity.async_refresh()
     entry.runtime_data = GarminConnectPersonalRuntimeData(
-        daily=daily, sleep=sleep, weight=weight
+        daily=daily, sleep=sleep, weight=weight, activity=activity
     )
 
     last_seen: tuple[date, datetime | None] | None = None
@@ -46,8 +50,8 @@ async def async_setup_entry(
         last_seen = (daily.data.summary.calendar_date, daily.data.summary.last_sync)
 
     @callback
-    def _async_refresh_sleep_after_sync() -> None:
-        """Refresh sleep and HRV when the watch has synced or a new day has started."""
+    def _async_refresh_after_sync() -> None:
+        """Refresh sleep, HRV and the last activity after a sync or at a new day."""
         nonlocal last_seen
         if (summary := daily.data.summary) is None:
             return
@@ -57,8 +61,11 @@ async def async_setup_entry(
             entry.async_create_background_task(
                 hass, sleep.async_request_refresh(), "refresh sleep after sync"
             )
+            entry.async_create_background_task(
+                hass, activity.async_request_refresh(), "refresh activity after sync"
+            )
 
-    entry.async_on_unload(daily.async_add_listener(_async_refresh_sleep_after_sync))
+    entry.async_on_unload(daily.async_add_listener(_async_refresh_after_sync))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

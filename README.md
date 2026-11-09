@@ -4,8 +4,9 @@ The **Garmin Connect Personal** integration connects Home Assistant to your
 [Garmin Connect](https://connect.garmin.com/) account through Garmin's official
 [Personal API](https://developer.garmin.com/gc-developer-program/personal/personal-api). Garmin
 Connect is where Garmin watches and fitness trackers store what they record: steps, calories,
-heart rate, stress, Body Battery, sleep and more. The integration reads your daily totals
-and last night's sleep and heart rate variability (HRV) from it.
+heart rate, stress, Body Battery, sleep and more. The integration reads your daily totals,
+last night's sleep and heart rate variability (HRV), your latest weight and your last
+activity from it.
 
 It uses a Personal API key that you create in Garmin Connect. It does not use your Garmin
 password and does not need multi-factor authentication codes.
@@ -123,6 +124,18 @@ by hand or by a scale.
 | Body fat | % | Body fat of the latest entry. Disabled by default. |
 | Last weigh-in | | When the latest weight was recorded. Disabled by default. |
 
+The last activity sensors show the activity that started most recently.
+
+| Sensor | Unit | Description |
+|---|---|---|
+| Last activity | | The activity's name, as shown in Garmin Connect. |
+| Last activity type | | Garmin's activity type, such as `running` or `strength_training`. Disabled by default. |
+| Last activity start | | When the activity started. |
+| Last activity duration | min | How long the activity took. |
+| Last activity distance | km | Distance covered in the activity. Disabled by default. |
+| Last activity calories | kcal | Calories burned in the activity. Disabled by default. |
+| Last activity average heart rate | bpm | Average heart rate during the activity. Disabled by default. |
+
 BMI and body fat need a scale that measures them. SpO2 and respiration need a device that measures them, with Pulse Ox switched on for SpO2;
 otherwise those sensors stay unknown.
 
@@ -143,6 +156,9 @@ any case. Last night's values usually appear within 10 minutes of the first sync
 wake up.
 
 Weight is read every hour, so a new weigh-in can take up to an hour to appear.
+
+The last activity is read again whenever the daily summary shows a new sync, and every hour
+in any case, which picks up an activity you add by hand.
 
 Some of what your device records late in the evening reaches Garmin only with the first sync
 after midnight, when the sensors already show the new day. For the day before, the integration

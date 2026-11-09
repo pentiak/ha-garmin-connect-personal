@@ -60,7 +60,7 @@ PLAN.md):
 | `GET /usersummary-service/usersummary/daily?calendarDate=YYYY-MM-DD` | The daily sensors, every poll; also the account ID in the config flow |
 | `GET /sleep-service/sleep/dailySleep` and `GET /hrv-service/hrv/{date}` | The sleep and HRV sensors, after each sync and hourly |
 | `GET /weight-service/weight/range/{startDate}/{endDate}` | The weight sensors, hourly, over the last year |
-| `GET /activitylist-service/activities/search/activities?limit=1` | The owner's full name for the entry title, in the config flow only |
+| `GET /activitylist-service/activities/search/activities?limit=1` | The last activity sensors, after each sync and hourly; also the owner's full name for the entry title in the config flow |
 
 `GET /usersummary-service/v2/dailysummaries` returns the same data for a date range, with
 calories nested under `calories.burnedTotal` and similar. It is the candidate for importing
@@ -180,7 +180,12 @@ so Home Assistant retries setup with backoff.
   `GarminConnectPersonalWeightData(latest: WeightEntry | None)`. Unlike the other two, its
   first refresh may fail without failing setup; the weight sensors are then unavailable
   until a later poll succeeds, an hour later at most.
-- `runtime_data` is `GarminConnectPersonalRuntimeData(daily, sleep, weight)`.
+- The activity coordinator requests the first activity of Garmin's activity list, which is
+  sorted by start time, newest first (ADR-0028). Like the sleep coordinator, it refreshes
+  whenever the daily summary shows a new `lastSyncTimestampGMT` or a new calendar day, and
+  every hour in any case. Data held: `GarminConnectPersonalActivityData(latest: Activity |
+  None)`. Like the weight coordinator, its first refresh may fail without failing setup.
+- `runtime_data` is `GarminConnectPersonalRuntimeData(daily, sleep, weight, activity)`.
 
 ### Device and entities
 
@@ -239,6 +244,23 @@ From the weight coordinator, for the latest entry:
 | `last_weigh_in` | `latestWeight.timestampGMT` | – | timestamp | – | disabled |
 
 BMI and body fat are only set when a scale that measures them recorded the entry.
+
+From the activity coordinator, for the most recently started activity:
+
+| Key | Source field | Unit | Device class | State class | Default |
+|---|---|---|---|---|---|
+| `last_activity` | `activityName` | – | – | – | enabled |
+| `last_activity_type` | `activityType.typeKey` | – | – | – | disabled |
+| `last_activity_start` | `startTimeGMT` | – | timestamp | – | enabled |
+| `last_activity_duration` | `duration` | s (shown in min) | duration | – | enabled |
+| `last_activity_distance` | `distance` | m (shown in km) | distance | – | disabled |
+| `last_activity_calories` | `calories` | kcal | energy | – | disabled |
+| `last_activity_average_heart_rate` | `averageHR` | bpm | – | – | disabled |
+
+The activity sensors have no state class, so they record no long-term statistics: each
+value belongs to one activity, and hourly means of it would mean nothing. The type is
+Garmin's type key as plain text, such as `running` or `strength_training`; Garmin has too
+many types to list as enum options.
 
 The HRV status options are the six values of the `status` enum in Garmin's OpenAPI document.
 Any other value leaves the sensor `unknown`, with a debug log entry.
@@ -299,6 +321,11 @@ Those are as personal as the activity times above, and no sensor reads them (ADR
 The latest weight entry is included without the time it was entered (`timestampGMT`, and
 `samplePk` and `date`, which are timestamps too). The weigh-in time sensor shows it, but it
 is disabled by default and not needed to debug a weight.
+
+Of the last activity, only the type, duration, distance, calories and average heart rate
+are included. Everything else in the activity is left out, including any field Garmin adds
+later: the start and end coordinates, the name, which Garmin often makes from the place,
+the start times, the activity ID and the owner's ID and names (ADR-0028).
 
 ### Translations
 

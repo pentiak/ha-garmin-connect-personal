@@ -10,6 +10,9 @@
   lowest, highest and latest respiration rate.
 - Weight sensor with the latest weight entry of the last year, and, disabled by default,
   BMI, body fat and the time of the weigh-in. Weight is fetched every hour.
+- Last activity sensors with the name, start time and duration of the most recently started
+  activity, and, disabled by default, its type, distance, calories and average heart rate.
+  The last activity is fetched after each sync and every hour.
 
 ### Changed
 

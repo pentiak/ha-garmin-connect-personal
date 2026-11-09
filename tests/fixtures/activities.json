@@ -7,6 +7,10 @@
     "activityType": {"typeId": 1, "typeKey": "running", "parentTypeId": 17},
     "distance": 8012.4,
     "duration": 2701.3,
+    "calories": 612.0,
+    "averageHR": 148.0,
+    "startLatitude": 52.5,
+    "startLongitude": 13.4,
     "ownerId": 123456789,
     "ownerDisplayName": "00000000-0000-4000-8000-000000000000",
     "ownerFullName": "Alex Example"
