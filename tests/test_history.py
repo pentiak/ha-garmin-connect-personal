@@ -30,6 +30,7 @@ from homeassistant.components.recorder.statistics import (
 )
 from homeassistant.config_entries import SOURCE_REAUTH
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.recorder import get_instance
 from homeassistant.util import dt as dt_util
 
@@ -176,6 +177,11 @@ async def test_days_are_imported_at_noon_with_running_sums(
     assert metadata[STEPS][1]["unit_of_measurement"] is None
     assert metadata[TOTAL_CALORIES][1]["unit_of_measurement"] == "kcal"
     assert metadata[TOTAL_CALORIES][1]["unit_class"] == "energy"
+    intensity = await get_instance(hass).async_add_executor_job(
+        partial(get_metadata, hass, statistic_ids={INTENSITY})
+    )
+    assert intensity[INTENSITY][1]["unit_of_measurement"] == "min"
+    assert intensity[INTENSITY][1]["unit_class"] == "duration"
 
 
 async def test_half_hour_zone_rounds_down_to_the_hour(
@@ -376,3 +382,27 @@ async def test_zone_change_imports_everything_again(
         (_at("2026-10-22T03:00:00+00:00"), 9120.0, 14120.0),
     ]
     assert len(history.requests) == 36
+
+
+async def test_statistics_are_named_after_the_renamed_device(
+    hass: HomeAssistant,
+    history: FakeGarminHistory,
+    mock_config_entry: MockConfigEntry,
+    device_registry: dr.DeviceRegistry,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test that the next run names the statistics after the device as renamed."""
+    history.days[date(2026, 10, 22)] = _steps(date(2026, 10, 22), 9120)
+    await _setup(hass, mock_config_entry)
+    device = device_registry.async_get_device_by_identifier(
+        (DOMAIN, "123456789"), mock_config_entry.entry_id
+    )
+    assert device is not None
+    device_registry.async_update_device(device.id, name_by_user="Alex's watch")
+
+    await _next_run(hass, freezer)
+
+    metadata = await get_instance(hass).async_add_executor_job(
+        partial(get_metadata, hass, statistic_ids={STEPS})
+    )
+    assert metadata[STEPS][1]["name"] == "Alex's watch Steps"
