@@ -61,10 +61,10 @@ PLAN.md):
 | `GET /sleep-service/sleep/dailySleep` and `GET /hrv-service/hrv/{date}` | The sleep and HRV sensors, after each sync and hourly |
 | `GET /weight-service/weight/range/{startDate}/{endDate}` | The weight sensors, hourly, over the last year |
 | `GET /activitylist-service/activities/search/activities?limit=1` | The last activity sensors, after each sync and hourly; also the owner's full name for the entry title in the config flow |
+| `GET /usersummary-service/v2/dailysummaries?startDate=…&endDate=…` | The imported history: three years in 31-day ranges the first time, then the last week every hour |
 
-`GET /usersummary-service/v2/dailysummaries` returns the same data for a date range, with
-calories nested under `calories.burnedTotal` and similar. It is the candidate for importing
-history into long-term statistics later. It is not used for live sensors.
+`v2/dailysummaries` returns the daily summary's totals for a range of days, with calories
+nested under `calories.burnedTotal` and similar. It is not used for live sensors.
 
 ### Other endpoints
 
@@ -85,7 +85,14 @@ the real API on 2026-10-28:
   summaries, 367 for HRV summaries; weight, weight goal and wellness activities accepted
   three years. `v2/dailysummaries` gives 400 above about a year, and also answered 500 for
   ranges of several months, depending on the dates, so callers should ask for a few months
-  at a time.
+  at a time. One-month ranges succeeded a year, three years and ten years back. Days from
+  before the account had a device that tracks all day come back with
+  `includesWellnessData` false, no steps and no resting calories, but with total and active
+  calories; in the month probed, 11 of the 31 days were missing from the response.
+  Compared with the daily summary over 14 days, the calories, steps, floors, intensity
+  minutes and Body Battery charged and drained matched every day; the distance
+  (`movement.steps.distanceInMeters`, the only daily distance in the response) matched on
+  13 and was larger on the other.
 - **Errors.** Error responses have an empty body or `{}`.
 - **Activity file download** returns a ZIP (`application/x-zip-compressed`) and answers 406
   to `Accept: application/octet-stream`; it needs `Accept: */*`.
@@ -304,6 +311,32 @@ Known effects:
   so the correction adds that day's data from before the sensor existed.
 - Only the day before is corrected. A watch that does not sync for longer leaves the earlier
   days short.
+
+### Imported history
+
+`history.py` imports Garmin's daily totals into external statistics (ADR-0029). It runs as a
+background task of the entry, once after setup and then every hour, and only when the
+recorder is loaded. A run that is still going makes the next one a no-op.
+
+- **Statistics:** `garmin_connect_personal:<userProfileId>_<key>` for each key of the daily
+  totals except distance (`total_calories`, `active_calories`, `resting_calories`,
+  `steps`, `floors_ascended`, `intensity_minutes`, `body_battery_charged`,
+  `body_battery_drained`), named "<entry title> <sensor name>". Sum, no mean, in the
+  sensor's native unit, with the energy unit class for calories.
+- **Rows:** one hourly row per day, starting at noon of the day in the Garmin time zone,
+  rounded down to the whole UTC hour, with the day's total as `state` and the running total
+  as `sum`. Only days with `includesWellnessData` count; a null value adds no row.
+- **Range:** the first run requests yesterday and the three years before it, 31 days per
+  request, oldest first, and imports each month as it arrives. Later runs start seven days
+  before the newest imported row of any of the statistics and end yesterday. Each
+  statistic's sum continues from its newest row before that start; rows from the start on
+  are replaced.
+- **Errors:** a rejected key starts reauthentication with `entry.async_start_reauth`. Other
+  errors log a warning once until a run succeeds again, which logs that at info level.
+- **Zone changes:** when the newest row of any statistic is not at the row start of its day
+  in the current Garmin zone, the run clears all of the entry's statistics and imports the
+  three years again. The recorder runs its jobs in order, so the clearing comes first.
+- **Removal:** `async_remove_entry` clears the statistics. Unloading keeps them.
 
 ### Diagnostics
 

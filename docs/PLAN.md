@@ -138,8 +138,9 @@ Integration side, after phase 3: each sensor needs the library release first. Ca
   `/weight-service/weight/range/{startDate}/{endDate}`.
 - Done 2026-11-09, ADR-0028: last activity (name, type, start time, duration, distance,
   calories, average heart rate) from `/activitylist-service/activities/search/activities`.
-- History import into long-term statistics from `/usersummary-service/v2/dailysummaries`,
-  as external statistics; the sensors' own statistics only cover the day before (ADR-0023).
+- Done 2026-11-09, ADR-0029: history import of the daily totals into external
+  statistics from `/usersummary-service/v2/dailysummaries`, three years back and kept
+  current.
 
 ### Phase 6: Submit to Home Assistant core
 

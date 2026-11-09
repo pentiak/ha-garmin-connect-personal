@@ -113,6 +113,7 @@ def mock_client(
         client.async_get_sleep.return_value = sleep
         client.async_get_hrv.return_value = hrv
         client.async_get_weight.return_value = weight
+        client.async_get_daily_overviews.return_value = []
         yield client
 
 

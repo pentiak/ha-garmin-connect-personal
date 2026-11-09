@@ -23,8 +23,9 @@ With the integration, those numbers are in Home Assistant:
 - Get a reminder in the evening when you have not reached your step goal.
 - Dim the lights or start a wind-down scene when your Body Battery is low.
 - Turn the morning lights on more gently after a short night or a low sleep score.
-- Keep a long-term history of your daily totals in Home Assistant's statistics, for example to
-  compare weeks or months in a statistics graph card.
+- Keep a long-term history of your daily totals in Home Assistant's statistics, including
+  the three years before you installed the integration, for example to compare weeks or
+  months in a statistics graph card.
 
 ## Prerequisites
 
@@ -144,6 +145,20 @@ charged and drained) are recorded in long-term statistics as one value per day. 
 sensor that is disabled by default, open it in **Settings → Devices & services → Entities**
 and turn on **Enabled**.
 
+### Imported history
+
+The integration also imports the daily totals of the last three years from Garmin Connect
+into Home Assistant's long-term statistics: total, active and resting calories, steps,
+floors climbed, intensity minutes, and Body Battery charged and drained. They are
+separate statistics, named after the entry and the sensor, for example **Garmin Connect
+Steps**, with one value per day. To see them, add a **Statistics graph** card, choose the
+statistic, and set the period to day, week or month.
+
+The import starts after setup and takes a few dozen requests the first time. After that, it
+runs every hour and fetches the last week again, so changes Garmin makes to recent days are
+picked up. Today's totals are added once the day is over. Days without all-day tracking,
+from before you had a device that records it, are left out.
+
 ## Data updates
 
 The integration polls Garmin's daily summary every 10 minutes. Garmin only has new data after
@@ -172,12 +187,16 @@ newer data, because the data only changes when your device syncs.
 ## Known limitations
 
 - The daily sensors show the current day only, and the other sensors only the latest night,
-  weight entry or activity. Earlier days are available only through the long-term statistics
-  recorded while the integration was running; history from before you installed it is not
-  imported.
-- Only the day before is corrected after a late sync. If your device does not sync for longer
-  than that, or you add an activity to an earlier day, the statistics of the earlier days keep
-  the values from before.
+  weight entry or activity. Earlier days are available through the long-term statistics.
+- The imported history covers the daily totals other than distance, three years back, and
+  is a separate series from each sensor's own statistics. Distance is left out because
+  Garmin's history gives a different distance from the daily total on some days. In the hourly view of a statistics graph card,
+  each day's total appears at midday.
+- In the sensors' own statistics, only the day before is corrected after a late sync. If your
+  device does not sync for longer than that, or you add an activity to an earlier day, the
+  sensors' statistics of the earlier days keep the values from before. The imported history
+  picks up changes to the last week, and to older days only if they are within a week of
+  the last imported day.
 - Garmin does not report when a key expires. Home Assistant asks for a new key only after
   Garmin has rejected the old one.
 - The sleep and HRV sensors show the night before until your device has synced last night.
@@ -191,6 +210,8 @@ This integration follows standard integration removal:
 
 1. Go to **Settings → Devices & services** and select **Garmin Connect Personal**.
 2. Open the menu of the entry and select **Delete**.
+
+Deleting the entry also deletes its imported history from the long-term statistics.
 
 The key stays valid in Garmin Connect until it expires. To revoke it straight away, delete it
 in Garmin Connect under **Settings → Personal API Key**.

@@ -1,0 +1,23 @@
+{
+  "uuid": "00000000-0000-4000-8000-000000000001",
+  "userProfilePk": 123456789,
+  "calendarDate": "2026-10-22",
+  "source": "GARMIN",
+  "includesWellnessData": true,
+  "includesActivityData": true,
+  "movement": {
+    "steps": {"value": 9120, "goal": 8000, "distanceInMeters": 7140.0},
+    "floorsAscended": {"value": 6, "goal": 10, "distanceInMeters": 18.3},
+    "floorsDescended": {"value": 5, "distanceInMeters": 15.2}
+  },
+  "intensityMinutes": {"moderate": 20, "vigorous": 15, "goal": 150},
+  "calories": {"burnedResting": 1650, "burnedActive": 610, "burnedTotal": 2260},
+  "heartRate": {"minValue": 46, "maxValue": 142, "restingValue": 53},
+  "bodyBattery": {
+    "minValue": 25,
+    "maxValue": 86,
+    "latestValue": 38,
+    "chargedValue": 61,
+    "drainedValue": 48
+  }
+}

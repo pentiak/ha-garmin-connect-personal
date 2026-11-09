@@ -521,3 +521,63 @@ activity list.
   An activity carries its coordinates, and its name is often the place. A list of fields to
   keep also leaves out whatever Garmin adds later, which a list of fields to redact would
   let through.
+
+## ADR-0029: History is imported into external statistics and kept current
+
+**Status:** accepted, 2026-11-09
+
+The sensors' own statistics start when the integration was installed, and only the day
+before is corrected after a late sync (ADR-0023). The integration also imports the daily
+totals Garmin has for earlier days, from `/usersummary-service/v2/dailysummaries`, into
+long-term statistics.
+
+- **External statistics, not the sensors' own.** Each daily total gets a statistic
+  `garmin_connect_personal:<userProfileId>_<key>`, named after the entry and the sensor
+  ("Garmin Connect Steps"), added with `async_add_external_statistics`, as opower, tibber,
+  elvia and the other core integrations that import history do. Writing rows before a sensor's first recorded hour would also
+  mean shifting the running sum of every row the recorder wrote after it; no core
+  integration does that, and a mistake would damage statistics the recorder keeps writing.
+  The cost: a statistics graph card shows the imported series next to the sensor's, not
+  as one line.
+- **The daily totals except distance:** total, active and resting calories, steps, floors
+  climbed, intensity minutes (a vigorous minute counts as two), and Body Battery charged
+  and drained, the sensors with state class `total` apart from distance. On a real account,
+  each of these matched the daily summary on all of the last 14 days. The range endpoint's
+  only daily distance, `movement.steps.distanceInMeters`, matched on 13 of them and was
+  larger on the other, so an imported distance would disagree with the sensor. Each
+  statistic has a sum and no mean, in the sensor's native unit (kcal, min, or none), with
+  the energy unit class for calories so the card converts it as it does for the sensors.
+  Values such as the resting heart rate are left out for now.
+- **One row per day, at noon.** The day's total is the change of one hourly row, starting
+  at noon of that day in the Garmin time zone (ADR-0006), rounded down to the whole UTC
+  hour. The statistics card groups rows into days in Home Assistant's time zone, which can
+  differ from Garmin's; a row at Garmin's midnight would land on the day before whenever
+  Garmin's zone is east of Home Assistant's. A row at noon lands on the same date unless
+  the two zones are 12 hours or more apart. Rounding down keeps rows on the hourly grid in
+  zones with a half-hour offset: the recorder checks for a whole hour before converting to
+  UTC. The hourly view shows each day's total at midday. Today is not imported until it is
+  over. When the Garmin zone changes, the newest rows are no longer at noon; the next run
+  then clears the statistics and imports everything again, since re-importing the last
+  week would give those days a second row at another hour.
+- **Only days with wellness data.** A day is imported only when Garmin sets
+  `includesWellnessData`. On a real account, it was set on every day of the months probed
+  a year and three years back, all with steps. Ten years back it was false on every day:
+  no steps and no resting calories, but total and active calories from activities. Those
+  totals would be incomplete, so such days are left out. Within an imported day, a value that is null adds no row, and the sum carries
+  on.
+- **Automatic, and kept current.** The first import covers the last three years, as
+  opower's does, a month per request: Garmin rejects ranges over about a year and has
+  answered with server errors for ranges of several months, while one-month ranges a year,
+  three years and ten years back all succeeded. Afterwards, an hourly run
+  imports the days from a week before the last imported day up to yesterday, also a month
+  per request, which is one request unless Home Assistant was off for weeks. Importing a row with the same start time replaces it, so the week of overlap
+  corrects days that changed after a late sync, another device or a manual entry. The sum
+  continues from the row before the overlap.
+- **Outside the coordinators.** The import runs as a background task of the entry, started
+  after setup and then every hour; it never delays setup and never makes a sensor
+  unavailable. A failed run is logged and retried an hour later, from where the last
+  successful run ended. A rejected key starts reauthentication with
+  `entry.async_start_reauth`, because raising `ConfigEntryAuthFailed` only does that inside
+  a coordinator or setup.
+- **Removed with the entry.** `async_remove_entry` clears the entry's external statistics,
+  as ista_ecotrend does. Unloading or reloading the entry keeps them.
