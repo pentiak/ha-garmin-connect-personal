@@ -23,9 +23,10 @@ from homeassistant.components.recorder.statistics import (
 )
 from homeassistant.const import UnitOfEnergy, UnitOfTime
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.recorder import get_instance
 from homeassistant.util import dt as dt_util
-from homeassistant.util.unit_conversion import EnergyConverter
+from homeassistant.util.unit_conversion import DurationConverter, EnergyConverter
 
 from .const import DOMAIN, HISTORY_CHUNK_DAYS, HISTORY_LOOKBACK, HISTORY_OVERLAP, LOGGER
 
@@ -98,7 +99,7 @@ HISTORY_TOTALS: tuple[HistoryTotal, ...] = (
         key="intensity_minutes",
         name="Intensity minutes",
         unit=UnitOfTime.MINUTES,
-        unit_class=None,
+        unit_class=DurationConverter.UNIT_CLASS,
         value_fn=_intensity_minutes,
     ),
     HistoryTotal(
@@ -219,13 +220,14 @@ class GarminConnectPersonalHistory:
             )
             for statistic_id in ids
         }
+        name = self._account_name()
         chunk_start = first
         while chunk_start <= yesterday:
             chunk_end = min(
                 chunk_start + timedelta(days=HISTORY_CHUNK_DAYS - 1), yesterday
             )
             days = await self.client.async_get_daily_overviews(chunk_start, chunk_end)
-            self._add(days, ids, sums)
+            self._add(days, ids, sums, name)
             chunk_start = chunk_end + timedelta(days=1)
 
     def _last_rows(self, ids: list[str]) -> dict[str, list[dict[str, float]]]:
@@ -243,11 +245,24 @@ class GarminConnectPersonalHistory:
             ]
         return rows
 
+    def _account_name(self) -> str:
+        """Return the account's device name as shown in Home Assistant.
+
+        The device follows a rename in the UI, and two accounts' entries can have the
+        same title.
+        """
+        device = dr.async_get(self.hass).async_get_device_by_identifier(
+            (DOMAIN, str(self.entry.unique_id)), self.entry.entry_id
+        )
+        name = (device.name_by_user or device.name) if device else None
+        return name or self.entry.title
+
     def _add(
         self,
         days: Iterable[DailyOverview],
         ids: list[str],
         sums: dict[str, float],
+        name: str,
     ) -> None:
         """Queue one row per day with wellness data for each total that has a value."""
         wellness_days = sorted(
@@ -274,7 +289,7 @@ class GarminConnectPersonalHistory:
                 StatisticMetaData(
                     mean_type=StatisticMeanType.NONE,
                     has_sum=True,
-                    name=f"{self.entry.title} {total.name}",
+                    name=f"{name} {total.name}",
                     source=DOMAIN,
                     statistic_id=statistic_id,
                     unit_class=total.unit_class,

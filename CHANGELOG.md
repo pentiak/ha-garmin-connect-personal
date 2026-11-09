@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The imported statistics are named after the device, as renamed in the UI, instead of the
+  entry title, so two accounts' statistics no longer share names. Imported intensity
+  minutes have the duration unit class, so a statistics graph card can convert them.
+
 ## 0.3.0 - 2026-11-09
 
 ### Added

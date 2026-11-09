@@ -150,8 +150,9 @@ and turn on **Enabled**.
 The integration also imports the daily totals of the last three years from Garmin Connect
 into Home Assistant's long-term statistics: total, active and resting calories, steps,
 floors climbed, intensity minutes, and Body Battery charged and drained. They are
-separate statistics, named after the entry and the sensor, for example **Garmin Connect
-Steps**, with one value per day. To see them, add a **Statistics graph** card, choose the
+separate statistics, named after the device and the sensor, for example **Garmin Connect
+Steps**, with one value per day. If you rename the device, the statistics follow within an
+hour. To see them, add a **Statistics graph** card, choose the
 statistic, and set the period to day, week or month.
 
 The import starts after setup and takes a few dozen requests the first time. After that, it

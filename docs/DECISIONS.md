@@ -532,8 +532,8 @@ totals Garmin has for earlier days, from `/usersummary-service/v2/dailysummaries
 long-term statistics.
 
 - **External statistics, not the sensors' own.** Each daily total gets a statistic
-  `garmin_connect_personal:<userProfileId>_<key>`, named after the entry and the sensor
-  ("Garmin Connect Steps"), added with `async_add_external_statistics`, as opower, tibber,
+  `garmin_connect_personal:<userProfileId>_<key>`, named after the account's device and
+  the sensor ("Garmin Connect Steps"), added with `async_add_external_statistics`, as opower, tibber,
   elvia and the other core integrations that import history do. Writing rows before a sensor's first recorded hour would also
   mean shifting the running sum of every row the recorder wrote after it; no core
   integration does that, and a mistake would damage statistics the recorder keeps writing.
@@ -546,7 +546,8 @@ long-term statistics.
   only daily distance, `movement.steps.distanceInMeters`, matched on 13 of them and was
   larger on the other, so an imported distance would disagree with the sensor. Each
   statistic has a sum and no mean, in the sensor's native unit (kcal, min, or none), with
-  the energy unit class for calories so the card converts it as it does for the sensors.
+  the energy unit class for calories and the duration unit class for intensity minutes, so
+  the card converts them as it does for the sensors' own statistics.
   Values such as the resting heart rate are left out for now.
 - **One row per day, at noon.** The day's total is the change of one hourly row, starting
   at noon of that day in the Garmin time zone (ADR-0006), rounded down to the whole UTC
@@ -581,3 +582,8 @@ long-term statistics.
   a coordinator or setup.
 - **Removed with the entry.** `async_remove_entry` clears the entry's external statistics,
   as ista_ecotrend does. Unloading or reloading the entry keeps them.
+- **Amended 2026-11-09, after the first install:** the name first came from the entry
+  title. Two accounts set up without a Garmin display name both get the title "Garmin
+  Connect", so their statistics had the same names in the card's picker. The device's name,
+  including a name given to it in the UI, tells them apart and follows a rename at the next
+  run. Intensity minutes had no unit class at first, unlike the sensor's statistics.

@@ -321,8 +321,10 @@ recorder is loaded. A run that is still going makes the next one a no-op.
 - **Statistics:** `garmin_connect_personal:<userProfileId>_<key>` for each key of the daily
   totals except distance (`total_calories`, `active_calories`, `resting_calories`,
   `steps`, `floors_ascended`, `intensity_minutes`, `body_battery_charged`,
-  `body_battery_drained`), named "<entry title> <sensor name>". Sum, no mean, in the
-  sensor's native unit, with the energy unit class for calories.
+  `body_battery_drained`), named "<device name> <sensor name>", where the device name is
+  the one given in the UI if any, then the device's own (the entry title when it was
+  created). Each run writes the name again. Sum, no mean, in the sensor's native unit, with
+  the energy unit class for calories and the duration unit class for intensity minutes.
 - **Rows:** one hourly row per day, starting at noon of the day in the Garmin time zone,
   rounded down to the whole UTC hour, with the day's total as `state` and the running total
   as `sum`. Only days with `includesWellnessData` count; a null value adds no row.
