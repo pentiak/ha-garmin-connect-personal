@@ -171,9 +171,10 @@ newer data, because the data only changes when your device syncs.
 
 ## Known limitations
 
-- The sensors show the current day only. Earlier days are available only through the
-  long-term statistics recorded while the integration was running; history from before you
-  installed it is not imported.
+- The daily sensors show the current day only, and the other sensors only the latest night,
+  weight entry or activity. Earlier days are available only through the long-term statistics
+  recorded while the integration was running; history from before you installed it is not
+  imported.
 - Only the day before is corrected after a late sync. If your device does not sync for longer
   than that, or you add an activity to an earlier day, the statistics of the earlier days keep
   the values from before.
