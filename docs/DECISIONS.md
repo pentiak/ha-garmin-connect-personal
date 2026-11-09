@@ -506,9 +506,10 @@ activity list.
   entry or another device, and syncs the daily coordinator misses.
 - **Setup does not wait for it,** for the reason in ADR-0027: the last activity is not needed
   for the daily totals. A rejected key still starts reauthentication.
-- **The first entry of the list.** Garmin sorts the list by start time, newest first, so an
-  activity entered later for an earlier time does not become the last activity. There is no
-  age limit: the start time sensor says how old the activity is.
+- **The first entry of the list.** Garmin lists the newest activity first: on a real account,
+  the start times of the last 50 were in order. They were in the order of their IDs too, so
+  whether an activity entered later for an earlier time comes first is not known. There is
+  no age limit: the start time sensor says how old the activity is.
 - **No state class.** Each value describes one activity, not a quantity measured over time.
   Hourly statistics of the last activity's distance would mean nothing, and the daily
   totals already record the day's distance and calories.

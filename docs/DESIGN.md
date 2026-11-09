@@ -180,8 +180,8 @@ so Home Assistant retries setup with backoff.
   `GarminConnectPersonalWeightData(latest: WeightEntry | None)`. Unlike the other two, its
   first refresh may fail without failing setup; the weight sensors are then unavailable
   until a later poll succeeds, an hour later at most.
-- The activity coordinator requests the first activity of Garmin's activity list, which is
-  sorted by start time, newest first (ADR-0028). Like the sleep coordinator, it refreshes
+- The activity coordinator requests the first activity of Garmin's activity list, which lists
+  the newest first (ADR-0028). Like the sleep coordinator, it refreshes
   whenever the daily summary shows a new `lastSyncTimestampGMT` or a new calendar day, and
   every hour in any case. Data held: `GarminConnectPersonalActivityData(latest: Activity |
   None)`. Like the weight coordinator, its first refresh may fail without failing setup.
