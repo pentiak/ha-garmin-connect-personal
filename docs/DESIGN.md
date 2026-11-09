@@ -193,6 +193,19 @@ named after the entry title. Entities use `has_entity_name` and translated names
 | `resting_heart_rate` | `restingHeartRate` | bpm | – | measurement | enabled |
 | `average_stress` | `averageStressLevel` | – | – | measurement | disabled |
 | `body_battery` | `bodyBatteryMostRecentValue` | – | – | measurement | enabled |
+| `body_battery_highest` | `bodyBatteryHighestValue` | – | – | measurement | disabled |
+| `body_battery_lowest` | `bodyBatteryLowestValue` | – | – | measurement | disabled |
+| `body_battery_charged` | `bodyBatteryChargedValue` | – | – | total | disabled |
+| `body_battery_drained` | `bodyBatteryDrainedValue` | – | – | total | disabled |
+| `min_heart_rate` | `minHeartRate` | bpm | – | measurement | disabled |
+| `max_heart_rate` | `maxHeartRate` | bpm | – | measurement | disabled |
+| `average_spo2` | `averageSpo2` | % | – | measurement | enabled |
+| `lowest_spo2` | `lowestSpo2` | % | – | measurement | disabled |
+| `latest_spo2` | `latestSpo2` | % | – | measurement | disabled |
+| `average_respiration` | `avgWakingRespirationValue` | br/min | – | measurement | enabled |
+| `lowest_respiration` | `lowestRespirationValue` | br/min | – | measurement | disabled |
+| `highest_respiration` | `highestRespirationValue` | br/min | – | measurement | disabled |
+| `latest_respiration` | `latestRespirationValue` | br/min | – | measurement | disabled |
 | `last_sync` | `lastSyncTimestampGMT` | – | timestamp | – | enabled, diagnostic |
 
 From the sleep coordinator, for the most recent night:
@@ -218,6 +231,11 @@ calendar day in the Garmin time zone. Long-term statistics start a new cycle whe
 with the last value of the day before. See DECISIONS.md ADR-0010 for why not `total_increasing`.
 
 Intensity minutes use Garmin's weighting, where a vigorous minute counts as two.
+
+The Body Battery charged and drained values only grow during a day, so they are daily
+totals like the calories, and the day before is corrected for them too. The average
+respiration rate is Garmin's average while awake. Home Assistant has no unit constant for
+breaths per minute; `br/min` is the string the Withings integration uses.
 
 ### Correcting the day before
 

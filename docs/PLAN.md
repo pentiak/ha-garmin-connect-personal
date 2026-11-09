@@ -132,7 +132,8 @@ Integration side, after phase 3: each sensor needs the library release first. Ca
 
 - Done 2026-10-30, ADR-0026: sleep (score, duration, stages) and HRV (last night
   average, weekly average, status).
-- Body Battery details, SpO2, respiration: some are already in the daily summary.
+- Done 2026-11-09: Body Battery details, SpO2, respiration and the day's heart rate range,
+  from the daily summary on aio-garmin-personal 0.4.0.
 - Weight: `/weight-service/weight/range/{startDate}/{endDate}`.
 - Last activity: `/activitylist-service/activities/search/activities`.
 - History import into long-term statistics from `/usersummary-service/v2/dailysummaries`,

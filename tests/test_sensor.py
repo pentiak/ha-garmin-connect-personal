@@ -29,6 +29,8 @@ async def _setup(hass: HomeAssistant, entry: MockConfigEntry) -> None:
         ("sensor.garmin_connect_intensity_minutes", "8", "min"),
         ("sensor.garmin_connect_resting_heart_rate", "55", "bpm"),
         ("sensor.garmin_connect_body_battery", "72", None),
+        ("sensor.garmin_connect_average_spo2", "95.0", "%"),
+        ("sensor.garmin_connect_average_respiration_rate", "15.0", "br/min"),
         ("sensor.garmin_connect_last_sync", "2026-10-23T06:12:48+00:00", None),
     ],
 )
@@ -56,6 +58,17 @@ async def test_sensor_states(
         "sensor.garmin_connect_resting_calories",
         "sensor.garmin_connect_floors_climbed",
         "sensor.garmin_connect_average_stress",
+        "sensor.garmin_connect_body_battery_highest",
+        "sensor.garmin_connect_body_battery_lowest",
+        "sensor.garmin_connect_body_battery_charged",
+        "sensor.garmin_connect_body_battery_drained",
+        "sensor.garmin_connect_lowest_heart_rate",
+        "sensor.garmin_connect_highest_heart_rate",
+        "sensor.garmin_connect_lowest_spo2",
+        "sensor.garmin_connect_latest_spo2",
+        "sensor.garmin_connect_lowest_respiration_rate",
+        "sensor.garmin_connect_highest_respiration_rate",
+        "sensor.garmin_connect_latest_respiration_rate",
     ],
 )
 async def test_niche_sensors_disabled_by_default(
@@ -73,6 +86,71 @@ async def test_niche_sensors_disabled_by_default(
     assert entry is not None
     assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
     assert hass.states.get(entity_id) is None
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+@pytest.mark.parametrize(
+    ("entity_id", "state", "unit", "state_class"),
+    [
+        ("sensor.garmin_connect_body_battery_highest", "74", None, "measurement"),
+        ("sensor.garmin_connect_body_battery_lowest", "19", None, "measurement"),
+        ("sensor.garmin_connect_body_battery_charged", "58", None, "total"),
+        ("sensor.garmin_connect_body_battery_drained", "3", None, "total"),
+        ("sensor.garmin_connect_lowest_heart_rate", "49", "bpm", "measurement"),
+        ("sensor.garmin_connect_highest_heart_rate", "97", "bpm", "measurement"),
+        ("sensor.garmin_connect_lowest_spo2", "87", "%", "measurement"),
+        ("sensor.garmin_connect_latest_spo2", "96", "%", "measurement"),
+        (
+            "sensor.garmin_connect_lowest_respiration_rate",
+            "9.0",
+            "br/min",
+            "measurement",
+        ),
+        (
+            "sensor.garmin_connect_highest_respiration_rate",
+            "23.0",
+            "br/min",
+            "measurement",
+        ),
+        (
+            "sensor.garmin_connect_latest_respiration_rate",
+            "14.0",
+            "br/min",
+            "measurement",
+        ),
+    ],
+)
+async def test_disabled_sensor_states(
+    hass: HomeAssistant,
+    mock_client: AsyncMock,
+    mock_config_entry: MockConfigEntry,
+    entity_id: str,
+    state: str,
+    unit: str | None,
+    state_class: str,
+) -> None:
+    """Test the state, unit and state class of each sensor disabled by default."""
+    await _setup(hass, mock_config_entry)
+
+    sensor = hass.states.get(entity_id)
+
+    assert sensor is not None
+    assert sensor.state == state
+    assert sensor.attributes.get("unit_of_measurement") == unit
+    assert sensor.attributes["state_class"] == state_class
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_body_battery_charge_resets_at_garmin_midnight(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    """Test that the Body Battery charged and drained are daily totals."""
+    await _setup(hass, mock_config_entry)
+
+    for key in ("charged", "drained"):
+        sensor = hass.states.get(f"sensor.garmin_connect_body_battery_{key}")
+        assert sensor is not None
+        assert sensor.attributes["last_reset"] == "2026-10-23T00:00:00+02:00"
 
 
 async def test_daily_totals_reset_at_garmin_midnight(
@@ -122,6 +200,11 @@ async def test_sensors_unknown_for_day_without_data(
     assert hass.states.get("sensor.garmin_connect_steps").state == STATE_UNKNOWN
     assert (
         hass.states.get("sensor.garmin_connect_intensity_minutes").state
+        == STATE_UNKNOWN
+    )
+    assert hass.states.get("sensor.garmin_connect_average_spo2").state == STATE_UNKNOWN
+    assert (
+        hass.states.get("sensor.garmin_connect_average_respiration_rate").state
         == STATE_UNKNOWN
     )
 
