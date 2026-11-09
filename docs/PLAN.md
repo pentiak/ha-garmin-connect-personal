@@ -144,19 +144,29 @@ Integration side, after phase 3: each sensor needs the library release first. Ca
 
 ### Phase 6: Submit to Home Assistant core
 
-1. Fork `home-assistant/core`, open the dev container, and run
-   `python3 -m script.scaffold integration` with the same domain to get current boilerplate.
-2. Copy the integration in. Remove `version` from `manifest.json`; add
-   `"quality_scale": "platinum"` only if every rule is met. Delete `translations/`; core
-   generates it. Opt the integration into core's strict type checking (check how core
-   currently lists strictly typed integrations).
-3. Run `python3 -m script.hassfest`, `python3 -m script.gen_requirements_all`, the tests and
-   mypy as core runs them.
-4. Open the first PR with the `sensor` platform only. Reviewers usually ask for a small first
-   PR; add more in follow-ups. Open the documentation PR to `home-assistant.io` and the brand PR
-   to `home-assistant/brands` alongside.
-5. After merge, keep the HACS repository for users on older Home Assistant releases until they
-   have moved, or archive it with a note pointing to core.
+ADR-0030. Core requires Bronze, a library with a source distribution under a licence
+compatible with Apache 2.0 (met), and authors who can explain every change: the maintainer
+opens every pull request and answers every review.
+
+1. In this repository: convert the sensor and diagnostics tests to snapshot tests, as core
+   writes them, and go through the code with the maintainer, starting with what reviewers
+   are likely to ask about.
+2. Core checkout: the maintainer forks `home-assistant/core`; clone it next to the two
+   repositories, with a virtual environment holding core's test requirements (Python 3.14.2
+   or later). Run `python3 -m script.scaffold integration` to compare current boilerplate.
+3. First core pull request: the config flow, the daily summary coordinator and its sensors,
+   with `quality_scale` Bronze and the other rules `todo`. Remove `version` from
+   `manifest.json`, `translations/` and `brand/`; add the integration to `.strict-typing`.
+   Run hassfest, `script.gen_requirements_all`, the tests and mypy as core does. Open the
+   documentation pull request to `home-assistant.io` alongside.
+4. Brands pull request to `home-assistant/brands` (`core_integrations/<domain>`), once Garmin
+   allows the logo. The first core pull request cannot merge before it: `brands` is a Bronze
+   rule.
+5. Follow-ups, one at a time: reauthentication and reconfiguration; diagnostics; the
+   correction of the day before; sleep and HRV; weight; the last activity; the history
+   import. Raise the tier as its rules are met.
+6. After everything is in a core release, archive this repository with a note pointing to
+   core.
 
 ## Open questions
 
