@@ -539,12 +539,15 @@ long-term statistics.
   integration does that, and a mistake would damage statistics the recorder keeps writing.
   The cost: a statistics graph card shows the imported series next to the sensor's, not
   as one line.
-- **The daily totals only:** total, active and resting calories, steps, distance, floors
+- **The daily totals except distance:** total, active and resting calories, steps, floors
   climbed, intensity minutes (a vigorous minute counts as two), and Body Battery charged
-  and drained, the sensors with state class `total`. Each statistic has a sum and no mean,
-  in the sensor's native unit (kcal, m, min, or none) with the matching unit class, so the
-  card converts distance and energy as it does for the sensors. Values such as the resting
-  heart rate are left out for now.
+  and drained, the sensors with state class `total` apart from distance. On a real account,
+  each of these matched the daily summary on all of the last 14 days. The range endpoint's
+  only daily distance, `movement.steps.distanceInMeters`, matched on 13 of them and was
+  larger on the other, so an imported distance would disagree with the sensor. Each
+  statistic has a sum and no mean, in the sensor's native unit (kcal, min, or none), with
+  the energy unit class for calories so the card converts it as it does for the sensors.
+  Values such as the resting heart rate are left out for now.
 - **One row per day, at noon.** The day's total is the change of one hourly row, starting
   at noon of that day in the Garmin time zone (ADR-0006), rounded down to the whole UTC
   hour. The statistics card groups rows into days in Home Assistant's time zone, which can

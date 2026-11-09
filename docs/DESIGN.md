@@ -89,6 +89,10 @@ the real API on 2026-10-28:
   before the account had a device that tracks all day come back with
   `includesWellnessData` false, no steps and no resting calories, but with total and active
   calories; in the month probed, 11 of the 31 days were missing from the response.
+  Compared with the daily summary over 14 days, the calories, steps, floors, intensity
+  minutes and Body Battery charged and drained matched every day; the distance
+  (`movement.steps.distanceInMeters`, the only daily distance in the response) matched on
+  13 and was larger on the other.
 - **Errors.** Error responses have an empty body or `{}`.
 - **Activity file download** returns a ZIP (`application/x-zip-compressed`) and answers 406
   to `Accept: application/octet-stream`; it needs `Accept: */*`.
@@ -315,10 +319,10 @@ background task of the entry, once after setup and then every hour, and only whe
 recorder is loaded. A run that is still going makes the next one a no-op.
 
 - **Statistics:** `garmin_connect_personal:<userProfileId>_<key>` for each key of the daily
-  totals (`total_calories`, `active_calories`, `resting_calories`, `steps`, `distance`,
-  `floors_ascended`, `intensity_minutes`, `body_battery_charged`, `body_battery_drained`),
-  named "<entry title> <sensor name>". Sum, no mean, in the sensor's native unit, with the
-  energy or distance unit class where there is one.
+  totals except distance (`total_calories`, `active_calories`, `resting_calories`,
+  `steps`, `floors_ascended`, `intensity_minutes`, `body_battery_charged`,
+  `body_battery_drained`), named "<entry title> <sensor name>". Sum, no mean, in the
+  sensor's native unit, with the energy unit class for calories.
 - **Rows:** one hourly row per day, starting at noon of the day in the Garmin time zone,
   rounded down to the whole UTC hour, with the day's total as `state` and the running total
   as `sum`. Only days with `includesWellnessData` count; a null value adds no row.

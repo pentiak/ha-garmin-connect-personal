@@ -311,26 +311,29 @@ async def test_run_still_going_skips_the_next(
     freezer: FrozenDateTimeFactory,
 ) -> None:
     """Test that an hourly run does nothing while the previous one is still going."""
+    started = asyncio.Event()
     release = asyncio.Event()
 
     async def _slow(start: date, end: date) -> list[DailyOverview]:
         """Wait until released before answering."""
         history.requests.append((start, end))
+        started.set()
         await release.wait()
         return []
 
     mock_client.async_get_daily_overviews.side_effect = _slow
     mock_config_entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
-    await hass.async_block_till_done()
+    await asyncio.wait_for(started.wait(), timeout=5)
 
     freezer.tick(timedelta(hours=1))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
-
-    assert len(history.requests) == 1
     release.set()
     await _settle(hass)
+
+    # One run of 36 requests; a second run would have made 36 more.
+    assert len(history.requests) == 36
 
 
 async def test_removing_the_entry_clears_the_statistics(

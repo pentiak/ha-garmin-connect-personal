@@ -149,7 +149,7 @@ and turn on **Enabled**.
 
 The integration also imports the daily totals of the last three years from Garmin Connect
 into Home Assistant's long-term statistics: total, active and resting calories, steps,
-distance, floors climbed, intensity minutes, and Body Battery charged and drained. They are
+floors climbed, intensity minutes, and Body Battery charged and drained. They are
 separate statistics, named after the entry and the sensor, for example **Garmin Connect
 Steps**, with one value per day. To see them, add a **Statistics graph** card, choose the
 statistic, and set the period to day, week or month.
@@ -188,8 +188,9 @@ newer data, because the data only changes when your device syncs.
 
 - The daily sensors show the current day only, and the other sensors only the latest night,
   weight entry or activity. Earlier days are available through the long-term statistics.
-- The imported history covers the daily totals only, three years back, and is a separate
-  series from each sensor's own statistics. In the hourly view of a statistics graph card,
+- The imported history covers the daily totals other than distance, three years back, and
+  is a separate series from each sensor's own statistics. Distance is left out because
+  Garmin's history gives a different distance from the daily total on some days. In the hourly view of a statistics graph card,
   each day's total appears at midday.
 - In the sensors' own statistics, only the day before is corrected after a late sync. If your
   device does not sync for longer than that, or you add an activity to an earlier day, the

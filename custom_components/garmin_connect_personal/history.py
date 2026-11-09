@@ -21,11 +21,11 @@ from homeassistant.components.recorder.statistics import (
     async_add_external_statistics,
     get_last_statistics,
 )
-from homeassistant.const import UnitOfEnergy, UnitOfLength, UnitOfTime
+from homeassistant.const import UnitOfEnergy, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.recorder import get_instance
 from homeassistant.util import dt as dt_util
-from homeassistant.util.unit_conversion import DistanceConverter, EnergyConverter
+from homeassistant.util.unit_conversion import EnergyConverter
 
 from .const import DOMAIN, HISTORY_CHUNK_DAYS, HISTORY_LOOKBACK, HISTORY_OVERLAP, LOGGER
 
@@ -56,7 +56,8 @@ def _intensity_minutes(day: DailyOverview) -> int | None:
     )
 
 
-# The sensors with state class `total`, under the same keys and English names.
+# The sensors with state class `total`, under the same keys and English names, except
+# distance: the range endpoint's distance differed from the daily summary's on some days.
 HISTORY_TOTALS: tuple[HistoryTotal, ...] = (
     HistoryTotal(
         key="total_calories",
@@ -85,13 +86,6 @@ HISTORY_TOTALS: tuple[HistoryTotal, ...] = (
         unit=None,
         unit_class=None,
         value_fn=lambda day: day.steps,
-    ),
-    HistoryTotal(
-        key="distance",
-        name="Distance",
-        unit=UnitOfLength.METERS,
-        unit_class=DistanceConverter.UNIT_CLASS,
-        value_fn=lambda day: day.total_distance_meters,
     ),
     HistoryTotal(
         key="floors_ascended",
