@@ -246,3 +246,16 @@ async def test_day_before_without_recorder_changes_no_state(
 
     assert mock_client.async_get_daily_summary.await_count == 2
     assert hass.states.get(TOTAL_CALORIES).state == "655.0"
+
+
+async def test_no_history_import_without_recorder(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
+) -> None:
+    """Test that without the recorder nothing is imported, and removal still works."""
+    mock_config_entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(mock_config_entry.entry_id)
+    await hass.async_block_till_done(wait_background_tasks=True)
+
+    mock_client.async_get_daily_overviews.assert_not_called()
+    assert await hass.config_entries.async_remove(mock_config_entry.entry_id)
+    assert hass.config_entries.async_get_entry(mock_config_entry.entry_id) is None

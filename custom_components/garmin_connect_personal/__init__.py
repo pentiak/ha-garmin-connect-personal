@@ -8,7 +8,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.recorder import get_instance
 
+from .const import HISTORY_UPDATE_INTERVAL
 from .coordinator import (
     GarminConnectPersonalActivityCoordinator,
     GarminConnectPersonalCoordinator,
@@ -16,6 +19,7 @@ from .coordinator import (
     GarminConnectPersonalSleepCoordinator,
     GarminConnectPersonalWeightCoordinator,
 )
+from .history import GarminConnectPersonalHistory, history_statistic_ids
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
@@ -67,6 +71,23 @@ async def async_setup_entry(
 
     entry.async_on_unload(daily.async_add_listener(_async_refresh_after_sync))
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    if "recorder" in hass.config.components:
+        history = GarminConnectPersonalHistory(hass, entry, client, daily.time_zone)
+
+        @callback
+        def _async_import_history(_now: datetime | None = None) -> None:
+            """Import the daily totals that are new or may have changed."""
+            entry.async_create_background_task(
+                hass, history.async_import(), "import history"
+            )
+
+        _async_import_history()
+        entry.async_on_unload(
+            async_track_time_interval(
+                hass, _async_import_history, HISTORY_UPDATE_INTERVAL
+            )
+        )
     return True
 
 
@@ -75,3 +96,11 @@ async def async_unload_entry(
 ) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(
+    hass: HomeAssistant, entry: GarminConnectPersonalConfigEntry
+) -> None:
+    """Remove the daily totals imported for the entry from long-term statistics."""
+    if "recorder" in hass.config.components:
+        get_instance(hass).async_clear_statistics(history_statistic_ids(entry))
