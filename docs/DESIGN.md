@@ -57,7 +57,9 @@ PLAN.md):
 | Endpoint | Used for |
 |---|---|
 | `GET /userprofile-service/userprofile/settings` | Display name and time zone, once per setup |
-| `GET /usersummary-service/usersummary/daily?calendarDate=YYYY-MM-DD` | All current sensors, every poll; also the account ID in the config flow |
+| `GET /usersummary-service/usersummary/daily?calendarDate=YYYY-MM-DD` | The daily sensors, every poll; also the account ID in the config flow |
+| `GET /sleep-service/sleep/dailySleep` and `GET /hrv-service/hrv/{date}` | The sleep and HRV sensors, after each sync and hourly |
+| `GET /weight-service/weight/range/{startDate}/{endDate}` | The weight sensors, hourly, over the last year |
 | `GET /activitylist-service/activities/search/activities?limit=1` | The owner's full name for the entry title, in the config flow only |
 
 `GET /usersummary-service/v2/dailysummaries` returns the same data for a date range, with
@@ -173,7 +175,12 @@ so Home Assistant retries setup with backoff.
   case. Data held: `GarminConnectPersonalSleepData(sleep: DailySleep | None, hrv:
   HrvSummary | None)`. Setup needs the first refresh of both coordinators to succeed;
   after that, a failed sleep refresh makes only the sleep and HRV sensors unavailable.
-- `runtime_data` is `GarminConnectPersonalRuntimeData(daily, sleep)`.
+- The weight coordinator requests the weight entries of the last 365 days every hour and
+  keeps the latest entry of the most recent day with one (ADR-0027). Data held:
+  `GarminConnectPersonalWeightData(latest: WeightEntry | None)`. Unlike the other two, its
+  first refresh may fail without failing setup; the weight sensors are then unavailable
+  until a later poll succeeds, an hour later at most.
+- `runtime_data` is `GarminConnectPersonalRuntimeData(daily, sleep, weight)`.
 
 ### Device and entities
 
@@ -221,6 +228,17 @@ From the sleep coordinator, for the most recent night:
 | `hrv_last_night` | HRV `hrvSummary.lastNightAvg` | ms | – | measurement | enabled |
 | `hrv_weekly_average` | HRV `hrvSummary.weeklyAvg` | ms | – | measurement | disabled |
 | `hrv_status` | HRV `hrvSummary.status`, lowercased | – | enum | – | enabled |
+
+From the weight coordinator, for the latest entry:
+
+| Key | Source field | Unit | Device class | State class | Default |
+|---|---|---|---|---|---|
+| `weight` | `latestWeight.weight` | g (shown in kg) | weight | measurement | enabled |
+| `bmi` | `latestWeight.bmi` | – | – | measurement | disabled |
+| `body_fat` | `latestWeight.bodyFat` | % | – | measurement | disabled |
+| `last_weigh_in` | `latestWeight.timestampGMT` | – | timestamp | – | disabled |
+
+BMI and body fat are only set when a scale that measures them recorded the entry.
 
 The HRV status options are the six values of the `status` enum in Garmin's OpenAPI document.
 Any other value leaves the sensor `unknown`, with a debug log entry.
@@ -277,6 +295,10 @@ started and ended or was scored (the `sleepStart…`, `sleepEnd…`, `autoSleep�
 `timestampGmt` and `createTimeStamp` fields, and the sleep `id`, which is the start time),
 the naps, the profile keys (`userProfilePK`, `userProfilePk`) and the watch's `deviceId`.
 Those are as personal as the activity times above, and no sensor reads them (ADR-0026).
+
+The latest weight entry is included without the time it was entered (`timestampGMT`, and
+`samplePk` and `date`, which are timestamps too). The weigh-in time sensor shows it, but it
+is disabled by default and not needed to debug a weight.
 
 ### Translations
 

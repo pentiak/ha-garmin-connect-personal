@@ -12,6 +12,7 @@ from aio_garmin_personal import (
     DailySleep,
     DailySummary,
     UserSettings,
+    WeightRange,
 )
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -65,6 +66,12 @@ def hrv() -> DailyHrv:
 
 
 @pytest.fixture
+def weight() -> WeightRange:
+    """Return the fixture's weight entries."""
+    return WeightRange.from_dict(load_json("weight_range.json"))
+
+
+@pytest.fixture
 def user_settings() -> UserSettings:
     """Return the fixture's profile settings."""
     return UserSettings.from_dict(load_json("user_settings.json"))
@@ -86,6 +93,7 @@ def mock_client(
     activities: list[Activity],
     sleep: DailySleep,
     hrv: DailyHrv,
+    weight: WeightRange,
 ) -> Generator[AsyncMock]:
     """Replace the library client in both the integration and the config flow."""
     with (
@@ -104,6 +112,7 @@ def mock_client(
         client.async_get_activities.return_value = activities
         client.async_get_sleep.return_value = sleep
         client.async_get_hrv.return_value = hrv
+        client.async_get_weight.return_value = weight
         yield client
 
 

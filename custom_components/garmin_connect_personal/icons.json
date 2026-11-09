@@ -96,6 +96,15 @@
       },
       "hrv_status": {
         "default": "mdi:heart-cog"
+      },
+      "bmi": {
+        "default": "mdi:human"
+      },
+      "body_fat": {
+        "default": "mdi:percent"
+      },
+      "last_weigh_in": {
+        "default": "mdi:scale-bathroom"
       }
     }
   }

@@ -6,7 +6,7 @@ from datetime import date, datetime, time, timedelta
 import math
 from typing import override
 
-from aio_garmin_personal import DailySummary, HrvSummary
+from aio_garmin_personal import DailySummary, HrvSummary, WeightEntry
 
 from homeassistant.components.recorder.statistics import statistics_during_period
 from homeassistant.components.sensor import (
@@ -21,6 +21,7 @@ from homeassistant.const import (
     EntityCategory,
     UnitOfEnergy,
     UnitOfLength,
+    UnitOfMass,
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant, callback
@@ -34,6 +35,7 @@ from .coordinator import (
     GarminConnectPersonalCoordinator,
     GarminConnectPersonalSleepCoordinator,
     GarminConnectPersonalSleepData,
+    GarminConnectPersonalWeightCoordinator,
 )
 from .entity import GarminConnectPersonalEntity
 
@@ -340,6 +342,50 @@ SLEEP_SENSORS: tuple[GarminConnectPersonalSleepSensorEntityDescription, ...] = (
 )
 
 
+@dataclass(frozen=True, kw_only=True)
+class GarminConnectPersonalWeightSensorEntityDescription(SensorEntityDescription):
+    """Describes a sensor read from the latest weight entry."""
+
+    value_fn: Callable[[WeightEntry], float | datetime | None]
+
+
+WEIGHT_SENSORS: tuple[GarminConnectPersonalWeightSensorEntityDescription, ...] = (
+    GarminConnectPersonalWeightSensorEntityDescription(
+        key="weight",
+        native_unit_of_measurement=UnitOfMass.GRAMS,
+        suggested_unit_of_measurement=UnitOfMass.KILOGRAMS,
+        suggested_display_precision=1,
+        device_class=SensorDeviceClass.WEIGHT,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda entry: entry.weight_grams,
+    ),
+    GarminConnectPersonalWeightSensorEntityDescription(
+        key="bmi",
+        translation_key="bmi",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        value_fn=lambda entry: entry.bmi,
+    ),
+    GarminConnectPersonalWeightSensorEntityDescription(
+        key="body_fat",
+        translation_key="body_fat",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        value_fn=lambda entry: entry.body_fat_percent,
+    ),
+    GarminConnectPersonalWeightSensorEntityDescription(
+        key="last_weigh_in",
+        translation_key="last_weigh_in",
+        device_class=SensorDeviceClass.TIMESTAMP,
+        entity_registry_enabled_default=False,
+        value_fn=lambda entry: entry.time_gmt,
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: GarminConnectPersonalConfigEntry,
@@ -348,6 +394,7 @@ async def async_setup_entry(
     """Set up the sensors of a config entry."""
     daily = entry.runtime_data.daily
     sleep = entry.runtime_data.sleep
+    weight = entry.runtime_data.weight
     async_add_entities(
         [
             *(
@@ -357,6 +404,10 @@ async def async_setup_entry(
             *(
                 GarminConnectPersonalSleepSensor(sleep, description)
                 for description in SLEEP_SENSORS
+            ),
+            *(
+                GarminConnectPersonalWeightSensor(weight, description)
+                for description in WEIGHT_SENSORS
             ),
         ]
     )
@@ -516,3 +567,27 @@ class GarminConnectPersonalSleepSensor(
     def native_value(self) -> float | int | str | None:
         """Return the value for the most recent night, or `None` without one."""
         return self.entity_description.value_fn(self.coordinator.data)
+
+
+class GarminConnectPersonalWeightSensor(
+    GarminConnectPersonalEntity[GarminConnectPersonalWeightCoordinator], SensorEntity
+):
+    """A value from the latest weight entry."""
+
+    entity_description: GarminConnectPersonalWeightSensorEntityDescription
+
+    def __init__(
+        self,
+        coordinator: GarminConnectPersonalWeightCoordinator,
+        description: GarminConnectPersonalWeightSensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, description.key)
+        self.entity_description = description
+
+    @property
+    def native_value(self) -> float | datetime | None:
+        """Return the value of the latest entry, or `None` without one."""
+        if (latest := self.coordinator.data.latest) is None:
+            return None
+        return self.entity_description.value_fn(latest)

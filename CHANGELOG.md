@@ -8,6 +8,8 @@
   and, disabled by default, the day's highest and lowest Body Battery, how much it charged
   and drained, the lowest and highest heart rate, the lowest and latest SpO2, and the
   lowest, highest and latest respiration rate.
+- Weight sensor with the latest weight entry of the last year, and, disabled by default,
+  BMI, body fat and the time of the weigh-in. Weight is fetched every hour.
 
 ### Changed
 

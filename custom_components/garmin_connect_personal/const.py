@@ -9,6 +9,10 @@ LOGGER = logging.getLogger(__package__)
 
 UPDATE_INTERVAL: Final = timedelta(minutes=10)
 SLEEP_UPDATE_INTERVAL: Final = timedelta(hours=1)
+WEIGHT_UPDATE_INTERVAL: Final = timedelta(hours=1)
+
+# How far back to look for the latest weight entry. Garmin accepts ranges of three years.
+WEIGHT_LOOKBACK: Final = timedelta(days=365)
 
 # Wait after midnight before reading the recorder's total for the day before, so that it
 # has compiled the day's last hour.
