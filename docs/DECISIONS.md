@@ -472,9 +472,12 @@ second `DataUpdateCoordinator` fetches them, next to the daily one.
 The weight sensors show the latest entry in Garmin Connect, whether entered by hand or by a
 scale. A third `DataUpdateCoordinator` fetches it.
 
-- **A coordinator of its own,** for the reason in ADR-0026: once the entry is set up, a
-  failing weight endpoint makes only the weight sensors unavailable. Setup needs its first
-  refresh to succeed, as for sleep.
+- **A coordinator of its own,** for the reason in ADR-0026: a failing weight endpoint makes
+  only the weight sensors unavailable.
+- **Setup does not wait for weight.** Unlike the daily summary and sleep, a failed first
+  weight request does not fail setup: weight is the least needed of the three, and Garmin
+  has answered with runs of server errors. The weight sensors are unavailable until a later
+  poll succeeds. A rejected key still starts reauthentication.
 - **Hourly, and not after each sync.** A weight reaches Garmin from a scale's own sync or a
   manual entry, not from the watch, so the daily summary's sync time says nothing about it.
   Weight changes rarely; an hour's delay costs little and adds one request an hour.

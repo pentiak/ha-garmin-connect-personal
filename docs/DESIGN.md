@@ -177,9 +177,9 @@ so Home Assistant retries setup with backoff.
   after that, a failed sleep refresh makes only the sleep and HRV sensors unavailable.
 - The weight coordinator requests the weight entries of the last 365 days every hour and
   keeps the latest entry of the most recent day with one (ADR-0027). Data held:
-  `GarminConnectPersonalWeightData(latest: WeightEntry | None)`. Like sleep, setup needs
-  its first refresh to succeed, and a later failure makes only the weight sensors
-  unavailable.
+  `GarminConnectPersonalWeightData(latest: WeightEntry | None)`. Unlike the other two, its
+  first refresh may fail without failing setup; the weight sensors are then unavailable
+  until a later poll succeeds, an hour later at most.
 - `runtime_data` is `GarminConnectPersonalRuntimeData(daily, sleep, weight)`.
 
 ### Device and entities

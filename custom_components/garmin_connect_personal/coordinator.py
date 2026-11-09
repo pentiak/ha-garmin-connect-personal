@@ -226,7 +226,11 @@ class GarminConnectPersonalSleepCoordinator(
 class GarminConnectPersonalWeightCoordinator(
     GarminConnectPersonalBaseCoordinator[GarminConnectPersonalWeightData]
 ):
-    """Poll the latest weight entry, entered by hand or by a scale."""
+    """Poll the latest weight entry, entered by hand or by a scale.
+
+    Unlike the other coordinators, its first refresh may fail without failing setup: the
+    weight sensors are then unavailable until a later poll succeeds.
+    """
 
     def __init__(
         self,
@@ -240,6 +244,9 @@ class GarminConnectPersonalWeightCoordinator(
             hass, entry, client, f"{DOMAIN} weight", WEIGHT_UPDATE_INTERVAL
         )
         self.time_zone = time_zone
+        # Setup goes on when the first weight request fails, so the data must exist
+        # before any request has succeeded.
+        self.data = GarminConnectPersonalWeightData(latest=None)
 
     @override
     async def _async_update_data(self) -> GarminConnectPersonalWeightData:

@@ -35,7 +35,8 @@ async def async_setup_entry(
     weight = GarminConnectPersonalWeightCoordinator(
         hass, entry, client, daily.time_zone
     )
-    await weight.async_config_entry_first_refresh()
+    # Weight is the least needed; a failure leaves only its sensors unavailable.
+    await weight.async_refresh()
     entry.runtime_data = GarminConnectPersonalRuntimeData(
         daily=daily, sleep=sleep, weight=weight
     )
