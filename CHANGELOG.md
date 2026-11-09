@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Sensors for the rest of the daily summary: average SpO2 and average respiration rate,
+  and, disabled by default, the day's highest and lowest Body Battery, how much it charged
+  and drained, the lowest and highest heart rate, the lowest and latest SpO2, and the
+  lowest, highest and latest respiration rate.
+
+### Changed
+
+- Requires aio-garmin-personal 0.4.0.
+
 ## 0.2.0 - 2026-11-08
 
 ### Added

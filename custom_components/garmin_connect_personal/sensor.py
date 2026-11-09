@@ -16,7 +16,13 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.components.sensor.const import UNIT_CONVERTERS
-from homeassistant.const import EntityCategory, UnitOfEnergy, UnitOfLength, UnitOfTime
+from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
+    UnitOfEnergy,
+    UnitOfLength,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.recorder import get_instance
@@ -33,6 +39,9 @@ from .entity import GarminConnectPersonalEntity
 
 # The coordinator does all I/O.
 PARALLEL_UPDATES = 0
+
+# Home Assistant has no unit constant for it; Withings in core uses the same string.
+BREATHS_PER_MINUTE = "br/min"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -129,6 +138,104 @@ SENSORS: tuple[GarminConnectPersonalSensorEntityDescription, ...] = (
         translation_key="body_battery",
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda summary: summary.body_battery_most_recent_value,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="body_battery_highest",
+        translation_key="body_battery_highest",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.body_battery_highest_value,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="body_battery_lowest",
+        translation_key="body_battery_lowest",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.body_battery_lowest_value,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="body_battery_charged",
+        translation_key="body_battery_charged",
+        state_class=SensorStateClass.TOTAL,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.body_battery_charged_value,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="body_battery_drained",
+        translation_key="body_battery_drained",
+        state_class=SensorStateClass.TOTAL,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.body_battery_drained_value,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="min_heart_rate",
+        translation_key="min_heart_rate",
+        native_unit_of_measurement="bpm",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.min_heart_rate,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="max_heart_rate",
+        translation_key="max_heart_rate",
+        native_unit_of_measurement="bpm",
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.max_heart_rate,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="average_spo2",
+        translation_key="average_spo2",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda summary: summary.average_spo2,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="lowest_spo2",
+        translation_key="lowest_spo2",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.lowest_spo2,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="latest_spo2",
+        translation_key="latest_spo2",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.latest_spo2,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="average_respiration",
+        translation_key="average_respiration",
+        native_unit_of_measurement=BREATHS_PER_MINUTE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda summary: summary.average_waking_respiration,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="lowest_respiration",
+        translation_key="lowest_respiration",
+        native_unit_of_measurement=BREATHS_PER_MINUTE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.lowest_respiration,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="highest_respiration",
+        translation_key="highest_respiration",
+        native_unit_of_measurement=BREATHS_PER_MINUTE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.highest_respiration,
+    ),
+    GarminConnectPersonalSensorEntityDescription(
+        key="latest_respiration",
+        translation_key="latest_respiration",
+        native_unit_of_measurement=BREATHS_PER_MINUTE,
+        state_class=SensorStateClass.MEASUREMENT,
+        entity_registry_enabled_default=False,
+        value_fn=lambda summary: summary.latest_respiration,
     ),
     GarminConnectPersonalSensorEntityDescription(
         key="last_sync",

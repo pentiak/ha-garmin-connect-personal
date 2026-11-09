@@ -28,6 +28,45 @@
       "body_battery": {
         "default": "mdi:battery-heart-variant"
       },
+      "body_battery_highest": {
+        "default": "mdi:battery-high"
+      },
+      "body_battery_lowest": {
+        "default": "mdi:battery-low"
+      },
+      "body_battery_charged": {
+        "default": "mdi:battery-arrow-up"
+      },
+      "body_battery_drained": {
+        "default": "mdi:battery-arrow-down"
+      },
+      "min_heart_rate": {
+        "default": "mdi:heart-minus"
+      },
+      "max_heart_rate": {
+        "default": "mdi:heart-plus"
+      },
+      "average_spo2": {
+        "default": "mdi:water-percent"
+      },
+      "lowest_spo2": {
+        "default": "mdi:water-percent"
+      },
+      "latest_spo2": {
+        "default": "mdi:water-percent"
+      },
+      "average_respiration": {
+        "default": "mdi:lungs"
+      },
+      "lowest_respiration": {
+        "default": "mdi:lungs"
+      },
+      "highest_respiration": {
+        "default": "mdi:lungs"
+      },
+      "latest_respiration": {
+        "default": "mdi:lungs"
+      },
       "last_sync": {
         "default": "mdi:sync"
       },

@@ -83,6 +83,19 @@ zone.
 | Resting heart rate | bpm | Today's resting heart rate. |
 | Average stress | | Today's average stress level, from 0 to 100. Disabled by default. |
 | Body Battery | | The most recent Body Battery value, from 0 to 100. |
+| Body Battery highest | | Today's highest Body Battery. Disabled by default. |
+| Body Battery lowest | | Today's lowest Body Battery. Disabled by default. |
+| Body Battery charged | | How much Body Battery charged today. Disabled by default. |
+| Body Battery drained | | How much Body Battery drained today. Disabled by default. |
+| Lowest heart rate | bpm | Today's lowest heart rate. Disabled by default. |
+| Highest heart rate | bpm | Today's highest heart rate. Disabled by default. |
+| Average SpO2 | % | Today's average blood oxygen saturation (Pulse Ox). |
+| Lowest SpO2 | % | Today's lowest blood oxygen saturation. Disabled by default. |
+| Latest SpO2 | % | The most recent blood oxygen reading. Disabled by default. |
+| Average respiration rate | br/min | Today's average breathing rate while awake. |
+| Lowest respiration rate | br/min | Today's lowest breathing rate. Disabled by default. |
+| Highest respiration rate | br/min | Today's highest breathing rate. Disabled by default. |
+| Latest respiration rate | br/min | The most recent breathing rate reading. Disabled by default. |
 | Last sync | | When the device last synced to Garmin Connect. Diagnostic. |
 
 These sensors describe the most recent night: the one that ended today, or, until your device
@@ -100,9 +113,13 @@ has synced it, the night before.
 | HRV weekly average | ms | Average of the nightly HRV over the last seven days. Disabled by default. |
 | HRV status | | Garmin's HRV status against your baseline: Balanced, Unbalanced, Low, Poor, No status or Invalid. |
 
-The daily totals (calories, steps, distance, floors and intensity minutes) are recorded in
-long-term statistics as one value per day. To enable a sensor that is disabled by default, open
-it in **Settings → Devices & services → Entities** and turn on **Enabled**.
+SpO2 and respiration need a device that measures them, with Pulse Ox switched on for SpO2;
+otherwise those sensors stay unknown.
+
+The daily totals (calories, steps, distance, floors, intensity minutes and Body Battery
+charged and drained) are recorded in long-term statistics as one value per day. To enable a
+sensor that is disabled by default, open it in **Settings → Devices & services → Entities**
+and turn on **Enabled**.
 
 ## Data updates
 

@@ -4,7 +4,7 @@ from collections.abc import Generator
 import json
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, PropertyMock, patch
 
 from aio_garmin_personal import (
     Activity,
@@ -33,6 +33,17 @@ def load_json(name: str) -> dict[str, Any]:
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Load integrations from custom_components in every test."""
+
+
+@pytest.fixture
+def entity_registry_enabled_by_default() -> Generator[None]:
+    """Create every entity enabled, as core's fixture of the same name does."""
+    with patch(
+        "homeassistant.helpers.entity.Entity.entity_registry_enabled_default",
+        return_value=True,
+        new_callable=PropertyMock,
+    ):
+        yield
 
 
 @pytest.fixture

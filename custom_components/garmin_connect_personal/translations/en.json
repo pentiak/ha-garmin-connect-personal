@@ -73,6 +73,45 @@
       "body_battery": {
         "name": "Body Battery"
       },
+      "body_battery_highest": {
+        "name": "Body Battery highest"
+      },
+      "body_battery_lowest": {
+        "name": "Body Battery lowest"
+      },
+      "body_battery_charged": {
+        "name": "Body Battery charged"
+      },
+      "body_battery_drained": {
+        "name": "Body Battery drained"
+      },
+      "min_heart_rate": {
+        "name": "Lowest heart rate"
+      },
+      "max_heart_rate": {
+        "name": "Highest heart rate"
+      },
+      "average_spo2": {
+        "name": "Average SpO2"
+      },
+      "lowest_spo2": {
+        "name": "Lowest SpO2"
+      },
+      "latest_spo2": {
+        "name": "Latest SpO2"
+      },
+      "average_respiration": {
+        "name": "Average respiration rate"
+      },
+      "lowest_respiration": {
+        "name": "Lowest respiration rate"
+      },
+      "highest_respiration": {
+        "name": "Highest respiration rate"
+      },
+      "latest_respiration": {
+        "name": "Latest respiration rate"
+      },
       "last_sync": {
         "name": "Last sync"
       },
