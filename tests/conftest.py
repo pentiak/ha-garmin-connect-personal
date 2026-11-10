@@ -16,6 +16,8 @@ from aio_garmin_personal import (
 )
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
+from syrupy.assertion import SnapshotAssertion
 
 from custom_components.garmin_connect_personal.const import DOMAIN
 from homeassistant.const import CONF_API_KEY
@@ -34,6 +36,15 @@ def load_json(name: str) -> dict[str, Any]:
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Load integrations from custom_components in every test."""
+
+
+@pytest.fixture
+def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+    """Return syrupy's snapshot with Home Assistant's extension, as core's conftest does.
+
+    The extension leaves out the IDs and times that differ between runs.
+    """
+    return snapshot.use_extension(HomeAssistantSnapshotExtension)
 
 
 @pytest.fixture

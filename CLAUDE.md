@@ -11,6 +11,7 @@ checklist of quality-scale rules; update it whenever a rule's state changes.
 
 ```shell
 .venv/bin/pytest                                  # 95% coverage gate (rule test-coverage)
+.venv/bin/pytest --snapshot-update                # after an intended change to entities or diagnostics; review the .ambr diff
 .venv/bin/mypy                                    # strict, integration code and script/ only
 .venv/bin/ruff check . && .venv/bin/ruff format --check .
 .venv/bin/python -I script/gen_translations.py    # after every strings.json change

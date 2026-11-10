@@ -378,3 +378,9 @@ generated file is stale.
 
 Expected values in tests are literals from the fixtures, never recomputed with the code under
 test.
+
+As in core, every sensor's registry entry and state, all of them enabled, and the
+diagnostics are checked against syrupy snapshots in `tests/snapshots/`, through Home
+Assistant's snapshot extension, which leaves out IDs and times. A separate test lists the
+sensors disabled by default. Other tests check behaviour: which days are requested,
+fallbacks, polling, failures and statistics.

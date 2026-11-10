@@ -23,7 +23,6 @@ from custom_components.garmin_connect_personal.const import DOMAIN
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 
 WEIGHT = "sensor.garmin_connect_weight"
 TOTAL_CALORIES = "sensor.garmin_connect_total_calories"
@@ -58,57 +57,6 @@ async def test_weight_is_the_latest_entry(
     assert mock_client.async_get_weight.await_args_list == [
         call(date(2025, 10, 23), date(2026, 10, 23))
     ]
-
-
-@pytest.mark.usefixtures("entity_registry_enabled_by_default")
-@pytest.mark.parametrize(
-    ("entity_id", "state", "unit"),
-    [
-        ("sensor.garmin_connect_bmi", "22.4", None),
-        ("sensor.garmin_connect_body_fat", "18.6", "%"),
-        ("sensor.garmin_connect_last_weigh_in", "2026-10-22T06:30:00+00:00", None),
-    ],
-)
-async def test_body_composition_sensors(
-    hass: HomeAssistant,
-    mock_client: AsyncMock,
-    mock_config_entry: MockConfigEntry,
-    entity_id: str,
-    state: str,
-    unit: str | None,
-) -> None:
-    """Test the BMI, body fat and weigh-in time of the latest entry."""
-    await _setup(hass, mock_config_entry)
-
-    sensor = hass.states.get(entity_id)
-
-    assert sensor is not None
-    assert sensor.state == state
-    assert sensor.attributes.get("unit_of_measurement") == unit
-
-
-@pytest.mark.parametrize(
-    "entity_id",
-    [
-        "sensor.garmin_connect_bmi",
-        "sensor.garmin_connect_body_fat",
-        "sensor.garmin_connect_last_weigh_in",
-    ],
-)
-async def test_body_composition_disabled_by_default(
-    hass: HomeAssistant,
-    mock_client: AsyncMock,
-    mock_config_entry: MockConfigEntry,
-    entity_registry: er.EntityRegistry,
-    entity_id: str,
-) -> None:
-    """Test that BMI, body fat and the weigh-in time are disabled by default."""
-    await _setup(hass, mock_config_entry)
-
-    entry = entity_registry.async_get(entity_id)
-
-    assert entry is not None
-    assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
 
 async def test_weight_unknown_without_entries(
