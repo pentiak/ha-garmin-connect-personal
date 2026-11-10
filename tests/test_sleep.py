@@ -21,7 +21,6 @@ from custom_components.garmin_connect_personal.const import DOMAIN
 from homeassistant.config_entries import SOURCE_REAUTH
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 
 from .conftest import load_json
 
@@ -50,78 +49,15 @@ async def _poll(hass: HomeAssistant, freezer: FrozenDateTimeFactory) -> None:
     await hass.async_block_till_done()
 
 
-@pytest.mark.parametrize(
-    ("entity_id", "state", "unit"),
-    [
-        (SLEEP_SCORE, "81", None),
-        ("sensor.garmin_connect_sleep_duration", "7.5", "h"),
-        ("sensor.garmin_connect_hrv_last_night", "52", "ms"),
-        (HRV_STATUS, "balanced", None),
-    ],
-)
-async def test_sleep_sensor_states(
-    hass: HomeAssistant,
-    mock_client: AsyncMock,
-    mock_config_entry: MockConfigEntry,
-    entity_id: str,
-    state: str,
-    unit: str | None,
-) -> None:
-    """Test the state and unit of each enabled sleep and HRV sensor."""
-    await _setup(hass, mock_config_entry)
-
-    sensor = hass.states.get(entity_id)
-
-    assert sensor is not None
-    assert sensor.state == state
-    assert sensor.attributes.get("unit_of_measurement") == unit
-    mock_client.async_get_sleep.assert_awaited_once_with(TODAY)
-    mock_client.async_get_hrv.assert_awaited_once_with(TODAY)
-
-
-async def test_hrv_status_options(
+async def test_last_night_is_requested(
     hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
 ) -> None:
-    """Test that the HRV status offers the statuses of Garmin's API."""
+    """Test that sleep and HRV are requested for the night that ended today."""
     await _setup(hass, mock_config_entry)
 
-    sensor = hass.states.get(HRV_STATUS)
-
-    assert sensor is not None
-    assert sensor.attributes["options"] == [
-        "none",
-        "poor",
-        "low",
-        "unbalanced",
-        "balanced",
-        "invalid",
-    ]
-
-
-@pytest.mark.parametrize(
-    "entity_id",
-    [
-        "sensor.garmin_connect_deep_sleep",
-        "sensor.garmin_connect_light_sleep",
-        "sensor.garmin_connect_rem_sleep",
-        "sensor.garmin_connect_awake_time",
-        "sensor.garmin_connect_hrv_weekly_average",
-    ],
-)
-async def test_sleep_details_disabled_by_default(
-    hass: HomeAssistant,
-    mock_client: AsyncMock,
-    mock_config_entry: MockConfigEntry,
-    entity_registry: er.EntityRegistry,
-    entity_id: str,
-) -> None:
-    """Test that the sleep stages and the weekly HRV are disabled by default."""
-    await _setup(hass, mock_config_entry)
-
-    entry = entity_registry.async_get(entity_id)
-
-    assert entry is not None
-    assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    assert hass.states.get(SLEEP_SCORE).state == "81"
+    mock_client.async_get_sleep.assert_awaited_once_with(TODAY)
+    mock_client.async_get_hrv.assert_awaited_once_with(TODAY)
 
 
 async def test_night_before_until_last_night_is_there(

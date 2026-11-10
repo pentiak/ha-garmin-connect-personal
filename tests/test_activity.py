@@ -23,7 +23,6 @@ from custom_components.garmin_connect_personal.const import DOMAIN
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntryState
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er
 
 from .conftest import load_json
 
@@ -31,12 +30,6 @@ LAST_ACTIVITY = "sensor.garmin_connect_last_activity"
 TOTAL_CALORIES = "sensor.garmin_connect_total_calories"
 SLEEP_SCORE = "sensor.garmin_connect_sleep_score"
 WEIGHT = "sensor.garmin_connect_weight"
-DISABLED = [
-    "sensor.garmin_connect_last_activity_type",
-    "sensor.garmin_connect_last_activity_distance",
-    "sensor.garmin_connect_last_activity_calories",
-    "sensor.garmin_connect_last_activity_average_heart_rate",
-]
 
 
 @pytest.fixture(autouse=True)
@@ -57,82 +50,14 @@ async def _poll(hass: HomeAssistant, freezer: FrozenDateTimeFactory) -> None:
     await hass.async_block_till_done()
 
 
-@pytest.mark.parametrize(
-    ("entity_id", "state", "unit"),
-    [
-        (LAST_ACTIVITY, "Morning Run", None),
-        (
-            "sensor.garmin_connect_last_activity_start",
-            "2026-10-22T05:15:02+00:00",
-            None,
-        ),
-        ("sensor.garmin_connect_last_activity_duration", "45.0216666666667", "min"),
-    ],
-)
-async def test_last_activity_sensor_states(
-    hass: HomeAssistant,
-    mock_client: AsyncMock,
-    mock_config_entry: MockConfigEntry,
-    entity_id: str,
-    state: str,
-    unit: str | None,
+async def test_newest_activity_is_requested(
+    hass: HomeAssistant, mock_client: AsyncMock, mock_config_entry: MockConfigEntry
 ) -> None:
-    """Test the enabled sensors show the first activity of Garmin's list."""
+    """Test that the sensors show the first activity of Garmin's list."""
     await _setup(hass, mock_config_entry)
 
-    sensor = hass.states.get(entity_id)
-
-    assert sensor is not None
-    assert sensor.state == state
-    assert sensor.attributes.get("unit_of_measurement") == unit
-    assert "state_class" not in sensor.attributes
+    assert hass.states.get(LAST_ACTIVITY).state == "Morning Run"
     mock_client.async_get_activities.assert_awaited_once_with(limit=1)
-
-
-@pytest.mark.usefixtures("entity_registry_enabled_by_default")
-@pytest.mark.parametrize(
-    ("entity_id", "state", "unit"),
-    [
-        ("sensor.garmin_connect_last_activity_type", "running", None),
-        ("sensor.garmin_connect_last_activity_distance", "8.0124", "km"),
-        ("sensor.garmin_connect_last_activity_calories", "612.0", "kcal"),
-        ("sensor.garmin_connect_last_activity_average_heart_rate", "148.0", "bpm"),
-    ],
-)
-async def test_disabled_last_activity_sensor_states(
-    hass: HomeAssistant,
-    mock_client: AsyncMock,
-    mock_config_entry: MockConfigEntry,
-    entity_id: str,
-    state: str,
-    unit: str | None,
-) -> None:
-    """Test the type, distance, calories and heart rate of the last activity."""
-    await _setup(hass, mock_config_entry)
-
-    sensor = hass.states.get(entity_id)
-
-    assert sensor is not None
-    assert sensor.state == state
-    assert sensor.attributes.get("unit_of_measurement") == unit
-    assert "state_class" not in sensor.attributes
-
-
-@pytest.mark.parametrize("entity_id", DISABLED)
-async def test_last_activity_details_disabled_by_default(
-    hass: HomeAssistant,
-    mock_client: AsyncMock,
-    mock_config_entry: MockConfigEntry,
-    entity_registry: er.EntityRegistry,
-    entity_id: str,
-) -> None:
-    """Test that the type, distance, calories and heart rate are disabled by default."""
-    await _setup(hass, mock_config_entry)
-
-    entry = entity_registry.async_get(entity_id)
-
-    assert entry is not None
-    assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
 
 
 async def test_last_activity_unknown_without_activities(

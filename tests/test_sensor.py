@@ -3,8 +3,13 @@
 from unittest.mock import AsyncMock
 
 from aio_garmin_personal import DailySummary
+from freezegun.api import FrozenDateTimeFactory
 import pytest
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.common import (
+    MockConfigEntry,
+    snapshot_platform,
+)
+from syrupy.assertion import SnapshotAssertion
 
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -19,42 +24,39 @@ async def _setup(hass: HomeAssistant, entry: MockConfigEntry) -> None:
     await hass.async_block_till_done()
 
 
-@pytest.mark.parametrize(
-    ("entity_id", "state", "unit"),
-    [
-        ("sensor.garmin_connect_total_calories", "655.0", "kcal"),
-        ("sensor.garmin_connect_active_calories", "22.0", "kcal"),
-        ("sensor.garmin_connect_steps", "418", "steps"),
-        ("sensor.garmin_connect_distance", "0.327", "km"),
-        ("sensor.garmin_connect_intensity_minutes", "8", "min"),
-        ("sensor.garmin_connect_resting_heart_rate", "55", "bpm"),
-        ("sensor.garmin_connect_body_battery", "72", None),
-        ("sensor.garmin_connect_average_spo2", "95.0", "%"),
-        ("sensor.garmin_connect_average_respiration_rate", "15.0", "br/min"),
-        ("sensor.garmin_connect_last_sync", "2026-10-23T06:12:48+00:00", None),
-    ],
-)
-async def test_sensor_states(
+@pytest.mark.usefixtures("entity_registry_enabled_by_default", "mock_client")
+async def test_all_entities(
     hass: HomeAssistant,
-    mock_client: AsyncMock,
+    snapshot: SnapshotAssertion,
+    entity_registry: er.EntityRegistry,
     mock_config_entry: MockConfigEntry,
-    entity_id: str,
-    state: str,
-    unit: str | None,
+    freezer: FrozenDateTimeFactory,
 ) -> None:
-    """Test the state and unit of each enabled sensor."""
+    """Test the registry entry and state of every sensor, all of them enabled."""
+    freezer.move_to("2026-10-23T08:00:00+00:00")
     await _setup(hass, mock_config_entry)
 
-    sensor = hass.states.get(entity_id)
-
-    assert sensor is not None
-    assert sensor.state == state
-    assert sensor.attributes.get("unit_of_measurement") == unit
+    await snapshot_platform(hass, entity_registry, snapshot, mock_config_entry.entry_id)
 
 
-@pytest.mark.parametrize(
-    "entity_id",
-    [
+@pytest.mark.usefixtures("mock_client")
+async def test_disabled_by_default(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_config_entry: MockConfigEntry,
+) -> None:
+    """Test which sensors are disabled until the user enables them."""
+    await _setup(hass, mock_config_entry)
+
+    disabled = {
+        entry.entity_id
+        for entry in er.async_entries_for_config_entry(
+            entity_registry, mock_config_entry.entry_id
+        )
+        if entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+    }
+
+    assert disabled == {
         "sensor.garmin_connect_resting_calories",
         "sensor.garmin_connect_floors_climbed",
         "sensor.garmin_connect_average_stress",
@@ -69,75 +71,19 @@ async def test_sensor_states(
         "sensor.garmin_connect_lowest_respiration_rate",
         "sensor.garmin_connect_highest_respiration_rate",
         "sensor.garmin_connect_latest_respiration_rate",
-    ],
-)
-async def test_niche_sensors_disabled_by_default(
-    hass: HomeAssistant,
-    mock_client: AsyncMock,
-    mock_config_entry: MockConfigEntry,
-    entity_registry: er.EntityRegistry,
-    entity_id: str,
-) -> None:
-    """Test that the niche sensors are disabled by default."""
-    await _setup(hass, mock_config_entry)
-
-    entry = entity_registry.async_get(entity_id)
-
-    assert entry is not None
-    assert entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
-    assert hass.states.get(entity_id) is None
-
-
-@pytest.mark.usefixtures("entity_registry_enabled_by_default")
-@pytest.mark.parametrize(
-    ("entity_id", "state", "unit", "state_class"),
-    [
-        ("sensor.garmin_connect_body_battery_highest", "74", None, "measurement"),
-        ("sensor.garmin_connect_body_battery_lowest", "19", None, "measurement"),
-        ("sensor.garmin_connect_body_battery_charged", "58", None, "total"),
-        ("sensor.garmin_connect_body_battery_drained", "3", None, "total"),
-        ("sensor.garmin_connect_lowest_heart_rate", "49", "bpm", "measurement"),
-        ("sensor.garmin_connect_highest_heart_rate", "97", "bpm", "measurement"),
-        ("sensor.garmin_connect_lowest_spo2", "87", "%", "measurement"),
-        ("sensor.garmin_connect_latest_spo2", "96", "%", "measurement"),
-        (
-            "sensor.garmin_connect_lowest_respiration_rate",
-            "9.0",
-            "br/min",
-            "measurement",
-        ),
-        (
-            "sensor.garmin_connect_highest_respiration_rate",
-            "23.0",
-            "br/min",
-            "measurement",
-        ),
-        (
-            "sensor.garmin_connect_latest_respiration_rate",
-            "14.0",
-            "br/min",
-            "measurement",
-        ),
-    ],
-)
-async def test_disabled_sensor_states(
-    hass: HomeAssistant,
-    mock_client: AsyncMock,
-    mock_config_entry: MockConfigEntry,
-    entity_id: str,
-    state: str,
-    unit: str | None,
-    state_class: str,
-) -> None:
-    """Test the state, unit and state class of each sensor disabled by default."""
-    await _setup(hass, mock_config_entry)
-
-    sensor = hass.states.get(entity_id)
-
-    assert sensor is not None
-    assert sensor.state == state
-    assert sensor.attributes.get("unit_of_measurement") == unit
-    assert sensor.attributes["state_class"] == state_class
+        "sensor.garmin_connect_deep_sleep",
+        "sensor.garmin_connect_light_sleep",
+        "sensor.garmin_connect_rem_sleep",
+        "sensor.garmin_connect_awake_time",
+        "sensor.garmin_connect_hrv_weekly_average",
+        "sensor.garmin_connect_bmi",
+        "sensor.garmin_connect_body_fat",
+        "sensor.garmin_connect_last_weigh_in",
+        "sensor.garmin_connect_last_activity_type",
+        "sensor.garmin_connect_last_activity_distance",
+        "sensor.garmin_connect_last_activity_calories",
+        "sensor.garmin_connect_last_activity_average_heart_rate",
+    }
 
 
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
