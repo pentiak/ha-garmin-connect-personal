@@ -587,3 +587,28 @@ long-term statistics.
   Connect", so their statistics had the same names in the card's picker. The device's name,
   including a name given to it in the UI, tells them apart and follows a rename at the next
   run. Intensity minutes had no unit class at first, unlike the sensor's statistics.
+
+## ADR-0030: The core submission is a series of small pull requests
+
+**Status:** accepted, 2026-11-09
+
+Phase 6 brings the integration into Home Assistant core. Core requires at least the Bronze
+tier for a new integration and a library with a source distribution under a licence compatible
+with Apache 2.0 (aio-garmin-personal meets both).
+
+- **Small pull requests.** The first one has the config flow, the daily summary coordinator
+  and its sensors, at Bronze. Each follow-up adds one part: reauthentication and
+  reconfiguration, diagnostics, the correction of the day before (ADR-0023), sleep and HRV,
+  weight, the last activity, and the history import (ADR-0029). The quality scale tier rises
+  as the rules land. Reviews stay small, and the two features that write long-term
+  statistics, which reviewers are most likely to question, do not hold up the rest.
+- **The brand waits for Garmin.** `brands` is a Bronze rule, so the first pull request
+  cannot merge before the brand images are in home-assistant/brands. Garmin offers its logo
+  to licensees under a confidentiality agreement, so the brands pull request waits for
+  Garmin's permission. If Garmin refuses, the brands maintainers are asked what to use.
+- **This repository first.** Work that does not need a core checkout is done here: tests are
+  converted to core's conventions (snapshot tests for the sensors and diagnostics), so the
+  port changes little beyond paths and imports.
+- **This repository stays the release channel** until every part is in a core release and
+  users have moved, then it is archived with a note pointing to core.
+
